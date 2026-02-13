@@ -1,0 +1,81 @@
+name: Patch and Sign APK
+
+on:
+  push:
+    paths:
+      - '**.apk' # Triggers when you upload/push an APK file
+  workflow_dispatch: # Allows you to run this manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Download Tools (Apktool & UberSigner)
+        run: |
+          # Download Apktool (Latest version)
+          wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.10.0.jar -O apktool.jar
+          
+          # Download UberApkSigner (v1.3.0)
+          wget https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar -O ubersigner.jar
+
+      - name: Find and Decode APK
+        run: |
+          # Finds the first .apk in the repo (ignoring previous build artifacts if any)
+          APK_FILE=$(find . -maxdepth 1 -name "*.apk" | head -n 1)
+          
+          if [ -z "$APK_FILE" ]; then
+            echo "No APK found in root directory!"
+            exit 1
+          fi
+          
+          echo "Processing: $APK_FILE"
+          # Decode using apktool
+          java -jar apktool.jar d -f "$APK_FILE" -o build_output
+
+      - name: Apply Python Patch
+        run: |
+          python patcher.py build_output
+
+      - name: Repack APK
+        run: |
+          # Build the folder back into an APK
+          java -jar apktool.jar b build_output -o patched_unsigned.apk --use-aapt2
+
+      - name: Decode Keystore
+        if: success()
+        env:
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+        run: echo "$RELEASE_KEYSTORE" | base64 --decode > my_keystore.jks
+
+      - name: Sign with UberApkSigner
+        run: |
+          java -jar ubersigner.jar \
+            -a patched_unsigned.apk \
+            --ks my_keystore.jks \
+            --ksAlias ${{ secrets.KEY_ALIAS }} \
+            --ksKeyPass ${{ secrets.KEY_PASSWORD }} \
+            --ksPass ${{ secrets.KEYSTORE_PASSWORD }} \
+            -o release \
+            --overwrite
+
+            
+      - name: Upload Patched APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Patched-App
+          path: release/*.apk
