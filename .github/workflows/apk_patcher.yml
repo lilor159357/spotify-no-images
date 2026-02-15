@@ -71,8 +71,7 @@ jobs:
             --ksAlias ${{ secrets.KEY_ALIAS }} \
             --ksKeyPass ${{ secrets.KEY_PASSWORD }} \
             --ksPass ${{ secrets.KEYSTORE_PASSWORD }} \
-            -o release \
-            --overwrite
+            -o release 
 
       - name: Commit Updated Version
         if: steps.check_version.outputs.update_needed == 'true'
