@@ -65,14 +65,14 @@ jobs:
       - name: Sign with UberApkSigner
         if: steps.check_version.outputs.update_needed == 'true'
         run: |
-          # Use --overwrite to avoid argument conflicts, then rename manually
+          # hello
           java -jar ubersigner.jar \
             -a patched_unsigned.apk \
             --ks my_keystore.jks \
             --ksAlias ${{ secrets.KEY_ALIAS }} \
             --ksKeyPass ${{ secrets.KEY_PASSWORD }} \
             --ksPass ${{ secrets.KEYSTORE_PASSWORD }} \
-            --overwrite
+
 
           # Create release directory and move the file
           mkdir -p release
