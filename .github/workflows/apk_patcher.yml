@@ -178,6 +178,10 @@ jobs:
         with:
           python-version: '3.10'
 
+      # --- ADD THIS STEP ---
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
       - name: Update listing
         run: python run.py --update-listing
 
