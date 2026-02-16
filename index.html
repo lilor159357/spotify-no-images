@@ -227,9 +227,8 @@
         // Static list of known apps — loaded from apps/*/app.json at build time.
         // For GitHub Pages, we maintain this list here since we can't do directory listing.
         // When a new app is added, this array should be updated.
-        const REGISTERED_APPS = [
-            "bit"
-        ];
+        // List of registered apps — loaded from apps.json.
+        let REGISTERED_APPS = [];
 
         // ─── i18n ───
         const i18n = {
@@ -491,6 +490,16 @@
         // ─── Init ───
         async function init() {
             try {
+                // Load registered apps
+                try {
+                    const appsResp = await fetch('apps.json');
+                    REGISTERED_APPS = await appsResp.json();
+                } catch (e) {
+                    console.warn('Failed to load apps.json:', e);
+                    // Fallback to bit if everything fails
+                    if (REGISTERED_APPS.length === 0) REGISTERED_APPS = ['bit'];
+                }
+
                 // Load all releases
                 const resp = await fetch(RELEASES_API);
                 allReleases = await resp.json();

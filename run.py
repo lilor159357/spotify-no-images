@@ -15,6 +15,7 @@ import sys
 
 from core.utils import (
     discover_apps,
+    generate_apps_listing,
     load_app_config,
     set_github_output,
     update_status,
@@ -133,11 +134,20 @@ Examples:
         action="store_true",
         help="List all registered apps and exit",
     )
+    parser.add_argument(
+        "--update-listing",
+        action="store_true",
+        help="Regenerate apps.json and exit",
+    )
 
     args = parser.parse_args()
 
     if args.list:
         list_apps()
+        return
+
+    if args.update_listing:
+        generate_apps_listing()
         return
 
     # Determine which apps to process

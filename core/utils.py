@@ -63,3 +63,11 @@ def discover_apps() -> list[str]:
         if os.path.isfile(config_path):
             app_ids.append(name)
     return app_ids
+
+
+def generate_apps_listing(output_file: str = "apps.json"):
+    """Discover all apps and write their IDs to a JSON file for the frontend."""
+    app_ids = discover_apps()
+    with open(output_file, "w") as f:
+        json.dump(app_ids, f, indent=2)
+    print(f"[+] Generated {output_file} with {len(app_ids)} apps.")
