@@ -18,6 +18,20 @@ body:
       required: true
 
   - type: input
+    id: app_name_he
+    attributes:
+      label: App Name (Hebrew)
+      description: The display name of the app in Hebrew (optional)
+      placeholder: "למשל: הבנק שלי"
+
+  - type: textarea
+    id: description_he
+    attributes:
+      label: Description (Hebrew)
+      description: A short description of the app in Hebrew (optional)
+      placeholder: "למשל: אפליקציית בנקאות מאובטחת"
+
+  - type: input
     id: package_name
     attributes:
       label: Package Name

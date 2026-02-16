@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APK Patcher — Download Patched Apps</title>
-    <meta name="description" content="Community-maintained patched Android apps. Download the latest versions automatically built and signed.">
+    <meta name="description"
+        content="Community-maintained patched Android apps. Download the latest versions automatically built and signed.">
 
     <!-- Google Fonts: Rubik -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,8 +17,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Analytics -->
-    <script data-goatcounter="https://cfopuser.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+    <script data-goatcounter="https://cfopuser.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -30,7 +31,7 @@
                     },
                     colors: {
                         brand: {
-                            50:  '#EAFDFB',
+                            50: '#EAFDFB',
                             100: '#C5FAF3',
                             200: '#8EF5E6',
                             300: '#4DEAD6',
@@ -42,7 +43,7 @@
                             900: '#004D46',
                         },
                         surface: {
-                            50:  '#f8fafc',
+                            50: '#f8fafc',
                             100: '#f1f5f9',
                             200: '#e2e8f0',
                             700: '#334155',
@@ -56,7 +57,9 @@
     </script>
 
     <style>
-        body { transition: all 0.3s ease; }
+        body {
+            transition: all 0.3s ease;
+        }
 
         .glass-panel {
             background: rgba(255, 255, 255, 0.92);
@@ -68,6 +71,7 @@
         .app-card {
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .app-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 16px 40px -12px rgba(0, 209, 188, 0.25);
@@ -76,24 +80,49 @@
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
         }
+
         .animate-fade-in-delay {
             animation: fadeIn 0.5s ease-out 0.15s forwards;
             opacity: 0;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .status-dot {
-            width: 8px; height: 8px; border-radius: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
             display: inline-block;
         }
-        .status-dot.ok    { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
-        .status-dot.fail  { background: #ef4444; box-shadow: 0 0 6px #ef444488; }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .status-dot.ok {
+            background: #22c55e;
+            box-shadow: 0 0 6px #22c55e88;
+        }
+
+        .status-dot.fail {
+            background: #ef4444;
+            box-shadow: 0 0 6px #ef444488;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
 
         .bg-mesh {
             background-color: #EAFDFB;
@@ -103,19 +132,22 @@
         }
     </style>
 </head>
+
 <body class="bg-mesh text-slate-800 min-h-screen flex flex-col font-sans">
 
     <!-- ─── Navigation ─── -->
     <nav class="w-full py-5 px-4 sm:px-8 flex justify-between items-center max-w-5xl mx-auto">
         <div class="flex items-center gap-3">
-            <div class="bg-brand-500 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md shadow-brand-500/30">
+            <div
+                class="bg-brand-500 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md shadow-brand-500/30">
                 <i class="fa-solid fa-screwdriver-wrench text-lg"></i>
             </div>
-            <span class="font-bold text-xl tracking-tight text-slate-700">APK<span class="text-brand-600 font-light">patcher</span></span>
+            <span class="font-bold text-xl tracking-tight text-slate-700">APK<span
+                    class="text-brand-600 font-light">patcher</span></span>
         </div>
         <div class="flex items-center gap-3">
             <a href="https://github.com/cfopuser/bit-updates" target="_blank"
-               class="text-slate-400 hover:text-slate-600 transition p-2">
+                class="text-slate-400 hover:text-slate-600 transition p-2">
                 <i class="fa-brands fa-github text-xl"></i>
             </a>
             <button id="langToggle"
@@ -128,9 +160,12 @@
 
     <!-- ─── Hero ─── -->
     <header class="text-center px-4 pt-6 pb-4 max-w-2xl mx-auto animate-fade-in">
-        <span class="inline-block bg-brand-100 text-brand-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider" data-key="badge">Community Patches</span>
+        <span
+            class="inline-block bg-brand-100 text-brand-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider"
+            data-key="badge">Community Patches</span>
         <h1 class="text-4xl sm:text-5xl font-bold mb-3 text-slate-800" data-key="heroTitle">Patched Apps</h1>
-        <p class="text-slate-500 text-lg max-w-md mx-auto" data-key="heroSubtitle">Automatically patched and signed. Updated daily.</p>
+        <p class="text-slate-500 text-lg max-w-md mx-auto" data-key="heroSubtitle">Automatically patched and signed.
+            Updated daily.</p>
     </header>
 
     <!-- ─── App Catalog ─── -->
@@ -158,8 +193,10 @@
     <div id="appModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" id="modalBackdrop"></div>
         <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
-            <div class="glass-panel rounded-3xl p-8 w-full max-w-lg max-h-[85vh] overflow-y-auto custom-scrollbar relative animate-fade-in">
-                <button id="modalClose" class="absolute top-4 right-4 rtl:right-auto rtl:left-4 text-slate-400 hover:text-slate-600 transition p-1">
+            <div
+                class="glass-panel rounded-3xl p-8 w-full max-w-lg max-h-[85vh] overflow-y-auto custom-scrollbar relative animate-fade-in">
+                <button id="modalClose"
+                    class="absolute top-4 right-4 rtl:right-auto rtl:left-4 text-slate-400 hover:text-slate-600 transition p-1">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
                 <div id="modalContent">
@@ -174,9 +211,8 @@
         <p class="text-xs text-slate-400 max-w-md mx-auto leading-relaxed" data-key="disclaimer">
             This is an unofficial community project. Not affiliated with any app developer. Use at your own risk.
         </p>
-        <a href="https://github.com/cfopuser/bit-updates/issues/new?template=new-app-request.yml"
-           target="_blank"
-           class="inline-flex items-center gap-2 mt-3 text-sm text-brand-600 hover:text-brand-800 transition font-medium">
+        <a href="https://github.com/cfopuser/bit-updates/issues/new?template=new-app-request.yml" target="_blank"
+            class="inline-flex items-center gap-2 mt-3 text-sm text-brand-600 hover:text-brand-800 transition font-medium">
             <i class="fa-solid fa-plus"></i>
             <span data-key="submitApp">Submit a new app</span>
         </a>
@@ -330,13 +366,13 @@
                              class="w-14 h-14 rounded-2xl shadow-md bg-white p-1 object-contain"
                              onerror="this.style.display='none'">
                         <div class="flex-1 min-w-0">
-                            <h2 class="font-bold text-lg text-slate-800 truncate">${config.name}</h2>
+                            <h2 class="font-bold text-lg text-slate-800 truncate">${currentLang === 'he' ? (config.name_he || config.name) : config.name}</h2>
                             <p class="text-xs text-slate-400 truncate font-mono">${config.package_name || ''}</p>
                         </div>
                         <span class="status-dot ${isOk ? 'ok' : 'fail'} mt-2 shrink-0" title="${isOk ? 'OK' : 'Failed'}"></span>
                     </div>
 
-                    <p class="text-sm text-slate-500 mb-4 line-clamp-2">${config.description || ''}</p>
+                    <p class="text-sm text-slate-500 mb-4 line-clamp-2">${currentLang === 'he' ? (config.description_he || config.description) : (config.description || '')}</p>
 
                     <div class="flex items-center justify-between">
                         <div>
@@ -381,7 +417,7 @@
                          alt="${config.name}"
                          class="w-20 h-20 rounded-2xl shadow-lg mx-auto mb-3 bg-white p-2 object-contain"
                          onerror="this.style.display='none'">
-                    <h2 class="text-2xl font-bold text-slate-800">${config.name}</h2>
+                    <h2 class="text-2xl font-bold text-slate-800">${currentLang === 'he' ? (config.name_he || config.name) : config.name}</h2>
                     <p class="text-sm text-slate-400 font-mono">${config.package_name || ''}</p>
                     ${config.maintainer ? `<p class="text-xs text-slate-400 mt-1">${t('maintainedBy')} <span class="font-medium text-brand-600">@${config.maintainer}</span></p>` : ''}
                 </div>
@@ -421,10 +457,10 @@
                         </button>
                         <div id="olderList" class="hidden mt-3 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                             ${olderReleases.map(r => {
-                                const asset = r.assets.find(a => a.name.endsWith('.apk')) || r.assets[0];
-                                if (!asset) return '';
-                                const ver = r.tag_name.replace(`${appId}-v`, '').replace('v', '');
-                                return `
+                const asset = r.assets.find(a => a.name.endsWith('.apk')) || r.assets[0];
+                if (!asset) return '';
+                const ver = r.tag_name.replace(`${appId}-v`, '').replace('v', '');
+                return `
                                     <a href="${asset.browser_download_url}"
                                        class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition group">
                                         <div>
@@ -437,7 +473,7 @@
                                         </div>
                                     </a>
                                 `;
-                            }).join('')}
+            }).join('')}
                         </div>
                     </div>
                 ` : ''}
@@ -536,4 +572,5 @@
         updateTexts();
     </script>
 </body>
+
 </html>
