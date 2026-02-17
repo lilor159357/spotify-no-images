@@ -5,7 +5,7 @@
   "package_name": "co.hopon.client",
   "description": "App for bus ticketing - patched to be used in netfree",
   "description_he": "אפליקצייה לתיקוף אוטובוסים - ערוכה לשימוש בנטפרי.",
-  "icon_url": "https://raw.githubusercontent.com/cfopuser/bit-updates/refs/heads/main/apps/hopon/hopon.webp",
+  "icon_url": "https://raw.githubusercontent.com/cfopuser/app-store/refs/heads/main/apps/hopon/hopon.webp",
   "source": "aptoide",
   "maintainer": "cfopuser",
   "version_file": "apps/hopon/version.txt",
