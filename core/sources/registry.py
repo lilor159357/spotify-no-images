@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 from .apkmirror import APKMirrorSource
 from .aptoide import AptoideSource
+from .aurora import AuroraSource
 from .apkpure import APKPureSource
 from .github import GitHubSource
 
@@ -16,6 +17,16 @@ class SourceDefinition:
 SOURCE_DEFINITIONS: dict[str, SourceDefinition] = {
     "apkmirror": SourceDefinition(factory=lambda _cfg: APKMirrorSource()),
     "aptoide": SourceDefinition(factory=lambda _cfg: AptoideSource()),
+    "aurora": SourceDefinition(
+        factory=lambda cfg: AuroraSource(
+            timeout=cfg.get("aurora_timeout", 30),
+            locale=cfg.get("aurora_locale", "en_US"),
+            timezone=cfg.get("aurora_timezone", "UTC"),
+            device_codename=cfg.get("aurora_device_codename", "bacon"),
+            dispenser_url=cfg.get("aurora_dispenser_url", "https://auroraoss.com/api/auth"),
+            dispenser_user_agent=cfg.get("aurora_user_agent", "com.aurora.store-4.8.1-73"),
+        )
+    ),
     "apkpure": SourceDefinition(
         factory=lambda cfg: APKPureSource(
             file_type=cfg.get("apkpure_file_type", "XAPK"),
