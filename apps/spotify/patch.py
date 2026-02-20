@@ -141,14 +141,20 @@ def patch(decompiled_dir: str) -> bool:
                         if last_return_idx != -1:
                             updater_call = "\n    # Inject Updater check\n    invoke-static {p0}, Lcom/spotify/updater/Updater;->check(Landroid/content/Context;)V\n\n    "
                             
-                            # תוקן: חיתוך נכון של המחרוזת במקום הכפלה
-                            new_method_body = (
-                                method_body + 
-                                updater_call + 
-                                method_body
-                            )
+                            # חיתוך אמיתי של גוף הפונקציה ל-2 חלקים: לפני ואחרי ה-return האחרון
+                            part1 = method_body
+                            part2 = method_body
                             
-                            new_main_smali = main_smali + method_signature + new_method_body + end_method + main_smali
+                            new_method_body = part1 + updater_call + part2
+                            
+                            # החלפת הבלוק הישן בבלוק החדש בתוך הקובץ השלם
+                            new_main_smali = (
+                                main_smali + 
+                                method_signature + 
+                                new_method_body + 
+                                end_method + 
+                                main_smali
+                            )
                             
                             with open(main_activity_path, 'w', encoding='utf-8') as f:
                                 f.write(new_main_smali)
