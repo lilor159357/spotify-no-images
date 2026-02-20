@@ -116,23 +116,49 @@ def patch(decompiled_dir: str) -> bool:
                 with open(main_activity_path, 'r', encoding='utf-8') as f:
                     main_smali = f.read()
                 
-                # תפסנו את שורת ההצהרה על הפונקציה (public final) ואת כמות הרגיסטרים
-                on_create_pattern = r"(\.method public final onCreate\(Landroid/os/Bundle;\)V\s*\.registers \d+)"
+                # בידוד כל הבלוק של פונקציית onCreate מתחילתה ועד סופה
+                method_pattern = re.compile(r"(\.method.*?onCreate\(Landroid/os/Bundle;\)V)(.*?)(\.end method)", re.DOTALL)
+                match = method_pattern.search(main_smali)
                 
-                # הקוד שיוזרק בדיוק כמו שעשית ידנית (עדיף להזריק מיד בהתחלה אחרי ה-registers)
-                updater_call = "\n\n    # Inject Updater check\n    move-object v0, p0\n    invoke-static {v0}, Lcom/spotify/updater/Updater;->check(Landroid/content/Context;)V\n"
-                
-                if "Lcom/spotify/updater/Updater;->check" not in main_smali:
-                    # הזרקת הקוד מיד אחרי הגדרת הרגיסטרים
-                    new_main_smali = re.sub(on_create_pattern, r"\1" + updater_call, main_smali, count=1)
-                    if new_main_smali != main_smali:
-                        with open(main_activity_path, 'w', encoding='utf-8') as f:
-                            f.write(new_main_smali)
+                if match:
+                    method_signature = match.group(1)
+                    method_body = match.group(2)
+                    end_method = match.group(3)
+                    
+                    if "Lcom/spotify/updater/Updater;->check" not in method_body:
+                        # חיפוש ה-return-void *האחרון* בתוך גוף הפונקציה (מהסוף להתחלה)
+                        last_return_idx = method_body.rfind("return-void")
+                        
+                        if last_return_idx != -1:
+                            # קוד ההזרקה
+                            updater_call = "\n    # Inject Updater check\n    invoke-static {p0}, Lcom/spotify/updater/Updater;->check(Landroid/content/Context;)V\n\n    "
+                            
+                            # חותכים את גוף הפונקציה לשניים בנקודת ה-return-void האחרונה, ושותלים את הקוד באמצע
+                            new_method_body = (
+                                method_body + 
+                                updater_call + 
+                                method_body
+                            )
+                            
+                            # מרכיבים חזרה את כל קובץ ה-Smali
+                            new_main_smali = main_smali + method_signature + new_method_body + end_method + main_smali
+                            
+                            with open(main_activity_path, 'w', encoding='utf-8') as f:
+                                f.write(new_main_smali)
+                                
+                            main_activity_patched = True
+                            print(" Updater call injected before the LAST return-void in SpotifyMainActivity.onCreate()")
+                        else:
+                            print(" Could not find 'return-void' inside onCreate()")
+                    else:
+                        print(" Updater call already exists in SpotifyMainActivity.smali (Skipping injection)")
                         main_activity_patched = True
-                        print(" Updater call injected into SpotifyMainActivity.onCreate()")
+                else:
+                    print(" Could not find onCreate() method in SpotifyMainActivity.smali")
+                    
             except Exception as e:
-                print(f" Failed to inject Updater call: {e}")
-            break 
+                print(f" Failed to process SpotifyMainActivity: {e}")
+            break # מצאנו את הקובץ, אפשר לצאת מהלולאה החיצונית
             
     if not main_activity_patched:
         print(" Warning: Could not inject Updater into SpotifyMainActivity.")
