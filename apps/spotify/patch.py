@@ -5,7 +5,6 @@ import shutil
 def patch(decompiled_dir: str) -> bool:
     print(f" Scanning for Spotify target files in {decompiled_dir}...")
     
-    # מיקום התיקייה הנוכחית של הסקריפט (apps/spotify)
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     payload_dir = os.path.join(current_script_dir, "updater_payload")
 
@@ -43,21 +42,35 @@ def patch(decompiled_dir: str) -> bool:
                 print(" Patched VideoSurfaceView")
 
     # ==========================================
-    # 2. העתקת קבצי ה-Updater לתוך ה-APK
+    # 2. העתקת קבצי ה-Updater לתוך DEX חדש ופנוי!
     # ==========================================
     if os.path.exists(payload_dir):
         try:
-            # העתקת כל תיקיית Smali
+            # איתור ה-Dex הגבוה ביותר (למשל smali_classes11)
+            max_dex = 1
+            for name in os.listdir(decompiled_dir):
+                if name.startswith("smali_classes"):
+                    try:
+                        num = int(name.replace("smali_classes", ""))
+                        if num > max_dex:
+                            max_dex = num
+                    except ValueError:
+                        pass
+            
+            # יצירת תיקיית Smali חדשה (למשל smali_classes12)
+            next_smali_dir = f"smali_classes{max_dex + 1}"
+            dst_smali = os.path.join(decompiled_dir, next_smali_dir)
+            
+            # העתקת מחלקות ה-Updater לתיקייה החדשה והריקה
             src_smali = os.path.join(payload_dir, "smali")
-            dst_smali = os.path.join(decompiled_dir, "smali")
             shutil.copytree(src_smali, dst_smali, dirs_exist_ok=True)
             
-            # העתקת תיקיית ה-Res (עבור ה-XML)
+            # העתקת ה-XML
             src_res = os.path.join(payload_dir, "res")
             dst_res = os.path.join(decompiled_dir, "res")
             shutil.copytree(src_res, dst_res, dirs_exist_ok=True)
             
-            print(" Updater payload files copied successfully.")
+            print(f" Updater payload files copied successfully to {next_smali_dir}.")
         except Exception as e:
             print(f" Failed to copy updater payload: {e}")
             return False
@@ -72,14 +85,12 @@ def patch(decompiled_dir: str) -> bool:
         with open(manifest_path, 'r', encoding='utf-8') as f:
             manifest_content = f.read()
 
-        # הוספת הרשאת התקנה אם לא קיימת
         if "android.permission.REQUEST_INSTALL_PACKAGES" not in manifest_content:
             manifest_content = manifest_content.replace(
                 '<application', 
                 '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application'
             )
 
-        # הוספת הסרוויס וה-Provider
         manifest_components = """
         <service android:name="com.spotify.updater.DownloadService" />
         <provider
@@ -106,7 +117,7 @@ def patch(decompiled_dir: str) -> bool:
         return False
 
     # ==========================================
-    # 4. הפעלת ה-Updater בכניסה לאפליקציה (SpotifyMainActivity)
+    # 4. הפעלת ה-Updater בכניסה לאפליקציה
     # ==========================================
     main_activity_patched = False
     for root, dirs, files in os.walk(decompiled_dir):
@@ -116,7 +127,6 @@ def patch(decompiled_dir: str) -> bool:
                 with open(main_activity_path, 'r', encoding='utf-8') as f:
                     main_smali = f.read()
                 
-                # בידוד כל הבלוק של פונקציית onCreate מתחילתה ועד סופה
                 method_pattern = re.compile(r"(\.method.*?onCreate\(Landroid/os/Bundle;\)V)(.*?)(\.end method)", re.DOTALL)
                 match = method_pattern.search(main_smali)
                 
@@ -126,21 +136,18 @@ def patch(decompiled_dir: str) -> bool:
                     end_method = match.group(3)
                     
                     if "Lcom/spotify/updater/Updater;->check" not in method_body:
-                        # חיפוש ה-return-void *האחרון* בתוך גוף הפונקציה (מהסוף להתחלה)
                         last_return_idx = method_body.rfind("return-void")
                         
                         if last_return_idx != -1:
-                            # קוד ההזרקה
                             updater_call = "\n    # Inject Updater check\n    invoke-static {p0}, Lcom/spotify/updater/Updater;->check(Landroid/content/Context;)V\n\n    "
                             
-                            # חותכים את גוף הפונקציה לשניים בנקודת ה-return-void האחרונה, ושותלים את הקוד באמצע
+                            # תוקן: חיתוך נכון של המחרוזת במקום הכפלה
                             new_method_body = (
                                 method_body + 
                                 updater_call + 
                                 method_body
                             )
                             
-                            # מרכיבים חזרה את כל קובץ ה-Smali
                             new_main_smali = main_smali + method_signature + new_method_body + end_method + main_smali
                             
                             with open(main_activity_path, 'w', encoding='utf-8') as f:
@@ -158,7 +165,7 @@ def patch(decompiled_dir: str) -> bool:
                     
             except Exception as e:
                 print(f" Failed to process SpotifyMainActivity: {e}")
-            break # מצאנו את הקובץ, אפשר לצאת מהלולאה החיצונית
+            break 
             
     if not main_activity_patched:
         print(" Warning: Could not inject Updater into SpotifyMainActivity.")
