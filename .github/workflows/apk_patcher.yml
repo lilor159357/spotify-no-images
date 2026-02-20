@@ -154,23 +154,24 @@ jobs:
           "
 
       # ── Commit changes ──
-      - name: Commit version & status updates
+      - name: Commit and Push version & status
         if: always()
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          # משוך שינויים אחרונים קודם, ללא rebase
+          git pull origin ${{ github.ref_name }}
           git add apps/${{ matrix.app }}/version.txt apps/${{ matrix.app }}/status.json
-          git commit -m "[${{ matrix.app }}] Update to ${{ steps.check_version.outputs.new_version || 'status update' }}" || echo "No changes to commit"
-          git pull origin ${{ github.ref_name }} --rebase
+          # אם יש קונפליקטים, ה-checkout --ours יפתור אותם אוטומטית וישמור על הגרסה של הבוט
+          git commit -m "[${{ matrix.app }}] Update to ${{ steps.check_version.outputs.new_version || 'status update' }}" || git checkout --ours apps/${{ matrix.app }}/*
           git push origin HEAD:${{ github.ref_name }}
 
       # ── Tag & Release ──
-      - name: Create tag
+      - name: Create tag and Force Push
         if: steps.check_version.outputs.update_needed == 'true' && success()
         run: |
-          git pull origin ${{ github.ref_name }} --rebase
-          git tag ${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
-          git push origin --tags
+          git tag -f ${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
+          git push origin --tags --force
 
       - name: Create GitHub Release
         if: steps.check_version.outputs.update_needed == 'true' && success()
@@ -212,7 +213,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin ${{ github.ref_name }}
           git add apps.json
-          git commit -m "update apps.json listing [skip ci]" || echo "No changes to commit"
-          git pull origin ${{ github.ref_name }} --rebase
+          git commit -m "update apps.json listing [skip ci]" || git checkout --ours apps.json
           git push origin HEAD:${{ github.ref_name }}
