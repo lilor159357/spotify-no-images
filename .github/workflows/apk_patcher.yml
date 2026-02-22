@@ -83,18 +83,33 @@ jobs:
 # ── Tools (Dynamic Download) ──
       - name: Download Latest Apktool & UberSigner
         if: steps.check_version.outputs.update_needed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Fetch latest Apktool
-          APKTOOL_URL=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
-            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url')
+          APKTOOL_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
+            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url' | head -n 1)
+          
+          if [ -z "$APKTOOL_URL" ]; then
+            echo "::error::Failed to fetch Apktool URL. Check API rate limits or jq filter."
+            exit 1
+          fi
+          
           echo "Downloading Apktool from $APKTOOL_URL"
           wget -q "$APKTOOL_URL" -O apktool.jar
 
           # Fetch latest Uber APK Signer
-          UBER_URL=$(curl -s https://api.github.com/repos/patrickfav/uber-apk-signer/releases/latest \
-            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url')
+          UBER_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/patrickfav/uber-apk-signer/releases/latest \
+            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url' | head -n 1)
+          
+          if [ -z "$UBER_URL" ]; then
+            echo "::error::Failed to fetch UberSigner URL."
+            exit 1
+          fi
+          
           echo "Downloading UberSigner from $UBER_URL"
           wget -q "$UBER_URL" -O ubersigner.jar
+
       # ── Decode ──
       - name: Decode APK
         if: steps.check_version.outputs.update_needed == 'true'
