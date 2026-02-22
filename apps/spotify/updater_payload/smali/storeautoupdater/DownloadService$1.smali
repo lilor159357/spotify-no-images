@@ -236,7 +236,7 @@
 
     iget-object v6, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
-    const-string v8, "com.bnhp.payments.paymentsapp.provider"
+    const-string v8, "__PROVIDER_AUTHORITY__"
 
     new-instance v2, Ljava/io/File;
 
