@@ -43,25 +43,22 @@
 
     invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v1, "A new version is available: "
-
+    # --- התחלת תרגום ---
+    const-string v1, "גרסה חדשה זמינה: "
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     iget-object v1, p0, Lstoreautoupdater/Updater$1$1;->val$newVersion:Ljava/lang/String;
-
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    const-string v1, "\nYour current version is: "
-
+    const-string v1, "\nהגרסה הנוכחית שלך: "
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     iget-object v1, p0, Lstoreautoupdater/Updater$1$1;->val$currentVersion:Ljava/lang/String;
-
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    const-string v1, "\n\nWould you like to download it?"
-
+    const-string v1, "\n\nהאם תרצה להוריד את העדכון?"
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    # --- סוף תרגום ---
 
     invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
 
@@ -75,8 +72,8 @@
 
     invoke-direct {v1, v2}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
 
-    const-string v2, "Update Available"
-
+    # --- תרגום הכותרת והכפתורים ---
+    const-string v2, "עדכון זמין"
     invoke-virtual {v1, v2}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
 
     move-result-object v1
@@ -85,8 +82,7 @@
 
     move-result-object v0
 
-    const-string v1, "Update"
-
+    const-string v1, "עדכון"
     new-instance v2, Lstoreautoupdater/Updater$1$1$1;
 
     invoke-direct {v2, p0}, Lstoreautoupdater/Updater$1$1$1;-><init>(Lstoreautoupdater/Updater$1$1;)V
@@ -95,8 +91,8 @@
 
     move-result-object v0
 
-    const-string v1, "Later"
-
+    const-string v1, "אחר כך"
+    # --- סוף תרגום ---
     const/4 v2, 0x0
 
     invoke-virtual {v0, v1, v2}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
