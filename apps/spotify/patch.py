@@ -106,8 +106,22 @@ def patch(decompiled_dir: str) -> bool:
     print("\n[*] Applying Universal Updater patch...")
     
     app_id = os.path.basename(current_script_dir)
-    repo_owner = "cfopuser"
-    repo_name = "app-store"
+
+    # --- תיקון: זיהוי דינמי של הריפו ---
+    # מנסה לקחת את השם "User/Repo" מתוך משתני הסביבה של GitHub Actions
+    github_repo_env = os.getenv('GITHUB_REPOSITORY')
+    
+    if github_repo_env:
+        # אם אנחנו רצים בתוך GitHub Action
+        repo_owner, repo_name = github_repo_env.split('/')
+    else:
+        # ברירת מחדל למקרה שמריצים ידנית במחשב (Local)
+        # כאן תכתוב את הפרטים שלך למקרה של בדיקות מקומיות
+        repo_owner = "lilor159357"
+        repo_name = "spotify-no-images"
+
+    print(f"[i] Detected Repo: {repo_owner}/{repo_name}")
+
     
     version_txt_url = f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/refs/heads/main/apps/{app_id}/version.txt"
     download_prefix = f"https://github.com/{repo_owner}/{repo_name}/releases/download/{app_id}-v"
