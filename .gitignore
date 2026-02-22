@@ -1,4 +1,8 @@
 repomix-output.md
 manual_aptoide.py
-*.diff
+.tmp_aurora_store_2
+.tmp_gplayapi
+*.js
+aurora_asset_list.txt
 __pycache__
+*.diff
