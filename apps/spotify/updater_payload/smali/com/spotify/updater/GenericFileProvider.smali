@@ -1,6 +1,6 @@
 # classes.dex
 
-.class public Lcom/spotify/updater/GenericFileProvider;
+.class public Lstoreautoupdater/GenericFileProvider;
 .super Landroidx/core/content/FileProvider;
 .source "GenericFileProvider.java"
 
