@@ -1,4 +1,6 @@
-.class final Lcom/spotify/updater/Updater$1;
+# classes.dex
+
+.class final Lstoreautoupdater/Updater$1;
 .super Ljava/lang/Object;
 
 # interfaces
@@ -14,7 +16,7 @@
     .registers 2
     .param p1, "context"  # Landroid/content/Context;
 
-    iput-object p1, p0, Lcom/spotify/updater/Updater$1;->val$context:Landroid/content/Context;
+    iput-object p1, p0, Lstoreautoupdater/Updater$1;->val$context:Landroid/content/Context;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
@@ -27,14 +29,14 @@
     .registers 12
 
     :try_start_0
-    # 1. קבלת הגרסה הנוכחית של האפליקציה (v0)
-    iget-object v8, p0, Lcom/spotify/updater/Updater$1;->val$context:Landroid/content/Context;
+    # 1. קבלת הגרסה הנוכחית של האפליקציה
+    iget-object v8, p0, Lstoreautoupdater/Updater$1;->val$context:Landroid/content/Context;
 
     invoke-virtual {v8}, Landroid/content/Context;->getPackageManager()Landroid/content/pm/PackageManager;
 
     move-result-object v3
 
-    iget-object v8, p0, Lcom/spotify/updater/Updater$1;->val$context:Landroid/content/Context;
+    iget-object v8, p0, Lstoreautoupdater/Updater$1;->val$context:Landroid/content/Context;
 
     invoke-virtual {v8}, Landroid/content/Context;->getPackageName()Ljava/lang/String;
 
@@ -48,7 +50,7 @@
 
     iget-object v0, v1, Landroid/content/pm/PackageInfo;->versionName:Ljava/lang/String;
 
-    # 2. התחברות לקובץ הגרסה הגולמי (Raw Text)
+    # 2. התחברות לקובץ הגרסה הגולמי
     new-instance v7, Ljava/net/URL;
 
     const-string v8, "https://raw.githubusercontent.com/lilor159357/spotify-no-images/refs/heads/main/apps/spotify/version.txt"
@@ -61,9 +63,8 @@
 
     check-cast v9, Ljava/net/HttpURLConnection;
 
-    # הגדרת User-Agent וביטול מטמון (Cache) כדי לקבל תמיד את הגרסה העדכנית
     const-string v10, "User-Agent"
-    const-string v8, "SpotifyUpdater"
+    const-string v8, "StoreAutoUpdater"
     invoke-virtual {v9, v10, v8}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
     const-string v10, "Cache-Control"
     const-string v8, "no-cache"
@@ -73,7 +74,6 @@
 
     move-result-object v2
 
-    # 3. קריאת תוכן הקובץ (הגרסה החדשה)
     new-instance v5, Ljava/util/Scanner;
 
     invoke-direct {v5, v2}, Ljava/util/Scanner;-><init>(Ljava/io/InputStream;)V
@@ -90,19 +90,15 @@
 
     invoke-virtual {v5}, Ljava/util/Scanner;->close()V
 
-    # 4. ניקוי רווחים ותווים מיותרים (v8 = הגרסה החדשה)
     invoke-virtual {v4}, Ljava/lang/String;->trim()Ljava/lang/String;
     move-result-object v8
 
-    # 5. השוואה: האם הגרסה הנוכחית (v0) שונה מהחדשה (v8)?
     invoke-virtual {v0, v8}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v9
 
     if-nez v9, :cond_exit
 
-    # 6. בניית קישור ההורדה באופן דינמי (v9 = downloadUrl)
-    # תבנית: .../download/spotify-v{VER}/spotify-patched-{VER}.apk
     new-instance v9, Ljava/lang/StringBuilder;
     invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
     const-string v6, "https://github.com/lilor159357/spotify-no-images/releases/download/spotify-v"
@@ -116,7 +112,6 @@
     invoke-virtual {v9}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v9
 
-    # 7. הפעלת הדיאלוג (UI Thread)
     new-instance v10, Landroid/os/Handler;
     invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
 
@@ -124,9 +119,8 @@
 
     invoke-direct {v10, v1}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
 
-    # העברת הגרסה החדשה (v8) וקישור ההורדה (v9) לדיאלוג
-    new-instance v1, Lcom/spotify/updater/Updater$1$1;
-    invoke-direct {v1, p0, v0, v8, v9}, Lcom/spotify/updater/Updater$1$1;-><init>(Lcom/spotify/updater/Updater$1;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+    new-instance v1, Lstoreautoupdater/Updater$1$1;
+    invoke-direct {v1, p0, v0, v8, v9}, Lstoreautoupdater/Updater$1$1;-><init>(Lstoreautoupdater/Updater$1;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 
     invoke-virtual {v10, v1}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
 
@@ -136,7 +130,7 @@
 
     :catch_error
     move-exception v8
-    const-string v9, "SpotifyUpdater"
+    const-string v9, "StoreAutoUpdater"
     invoke-virtual {v8}, Ljava/lang/Exception;->toString()Ljava/lang/String;
     move-result-object v10
     invoke-static {v9, v10}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
