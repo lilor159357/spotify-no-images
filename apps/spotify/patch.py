@@ -20,23 +20,41 @@ def get_main_activity_smali_path(manifest_path: str) -> str:
         root = tree.getroot()
         ns = {'android': 'http://schemas.android.com/apk/res/android'}
         
-        for activity in root.iter('activity'):
+        # פונקציית עזר לבדיקה אם אלמנט מכיל הגדרות של מסך פתיחה
+        def is_main_launcher(element):
             is_main = False
             is_launcher = False
-            for intent_filter in activity.iter('intent-filter'):
+            for intent_filter in element.iter('intent-filter'):
                 for action in intent_filter.iter('action'):
                     if action.get(f"{{{ns['android']}}}name") == "android.intent.action.MAIN":
                         is_main = True
                 for category in intent_filter.iter('category'):
                     if category.get(f"{{{ns['android']}}}name") == "android.intent.category.LAUNCHER":
                         is_launcher = True
-            
-            if is_main and is_launcher:
-                activity_name = activity.get(f"{{{ns['android']}}}name")
-                if activity_name:
-                    if activity_name.startswith("."):
-                        activity_name = root.get('package') + activity_name
-                    return activity_name.replace('.', '/') + ".smali"
+            return is_main and is_launcher
+
+        target_activity_name = None
+
+        # 1. חיפוש קודם כל בתגיות activity רגילות
+        for activity in root.iter('activity'):
+            if is_main_launcher(activity):
+                target_activity_name = activity.get(f"{{{ns['android']}}}name")
+                break
+        
+        # 2. אם לא מצאנו (כמו בספוטיפיי), נחפש בתוך תגיות activity-alias
+        if not target_activity_name:
+            for alias in root.iter('activity-alias'):
+                if is_main_launcher(alias):
+                    # ב-alias, השם האמיתי נמצא במאפיין targetActivity
+                    target_activity_name = alias.get(f"{{{ns['android']}}}targetActivity")
+                    break
+                    
+        # אם מצאנו, נמיר אותו לנתיב של קובץ Smali
+        if target_activity_name:
+            if target_activity_name.startswith("."):
+                target_activity_name = root.get('package') + target_activity_name
+            return target_activity_name.replace('.', '/') + ".smali"
+
     except Exception as e:
         print(f"[-] Could not parse main activity from manifest: {e}")
     return None
@@ -83,7 +101,7 @@ def patch(decompiled_dir: str) -> bool:
                 print("[+] Patched VideoSurfaceView")
 
     # =========================================================================
-    # חלק 2: הזרקת מנגנון העדכון האוניברסלי (החלק הזה יעבוד בכל אפליקציה)
+    # חלק 2: הזרקת מנגנון העדכון האוניברסלי
     # =========================================================================
     print("\n[*] Applying Universal Updater patch...")
     
@@ -125,7 +143,7 @@ def patch(decompiled_dir: str) -> bool:
         if os.path.exists(src_updater_files):
             shutil.copytree(src_updater_files, dst_smali_root, dirs_exist_ok=True)
         else:
-            print("[-] CRITICAL: 'storeautoupdater' directory not found in payload.")
+            print("[-] CRITICAL: 'storeautoupdater' directory not found in payload/smali.")
             return False
             
         src_res = os.path.join(payload_dir, "res")
