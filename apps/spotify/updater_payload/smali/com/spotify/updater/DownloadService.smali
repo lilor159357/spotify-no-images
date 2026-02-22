@@ -1,6 +1,6 @@
 # classes.dex
 
-.class public Lcom/spotify/updater/DownloadService;
+.class public Lstoreautoupdater/DownloadService;
 .super Landroid/app/Service;
 
 
@@ -62,7 +62,7 @@
     .param p2, "flags"  # I
     .param p3, "startId"  # I
 
-    invoke-direct {p0}, Lcom/spotify/updater/DownloadService;->createNotificationChannel()V
+    invoke-direct {p0}, Lstoreautoupdater/DownloadService;->createNotificationChannel()V
 
     const-string v0, "url"
 
@@ -78,9 +78,9 @@
 
     new-instance v2, Ljava/lang/Thread;
 
-    new-instance v3, Lcom/spotify/updater/DownloadService$1;
+    new-instance v3, Lstoreautoupdater/DownloadService$1;
 
-    invoke-direct {v3, p0, v0, v1}, Lcom/spotify/updater/DownloadService$1;-><init>(Lcom/spotify/updater/DownloadService;Ljava/lang/String;Ljava/lang/String;)V
+    invoke-direct {v3, p0, v0, v1}, Lstoreautoupdater/DownloadService$1;-><init>(Lstoreautoupdater/DownloadService;Ljava/lang/String;Ljava/lang/String;)V
 
     invoke-direct {v2, v3}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
