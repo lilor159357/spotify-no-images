@@ -9,6 +9,7 @@
   "source": "github",
   "repo": "MetrolistGroup/Metrolist",
   "maintainer": "lilor159357",
+  "skip_mitm": true,
   "version_file": "apps/metrolist/version.txt",
   "status_file": "apps/metrolist/status.json"
 }

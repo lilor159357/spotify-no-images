@@ -1,2 +1,4 @@
 repomix-output.md
 manual_aptoide.py
+*.diff
+__pycache__
