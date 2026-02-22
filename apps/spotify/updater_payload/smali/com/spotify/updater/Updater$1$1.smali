@@ -1,6 +1,6 @@
 # classes.dex
 
-.class Lcom/spotify/updater/Updater$1$1;
+.class Lstoreautoupdater/Updater$1$1;
 .super Ljava/lang/Object;
 
 # interfaces
@@ -8,7 +8,7 @@
 
 
 # instance fields
-.field final synthetic this$1:Lcom/spotify/updater/Updater$1;
+.field final synthetic this$1:Lstoreautoupdater/Updater$1;
 
 .field final synthetic val$currentVersion:Ljava/lang/String;
 
@@ -18,16 +18,16 @@
 
 
 # direct methods
-.method constructor <init>(Lcom/spotify/updater/Updater$1;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+.method constructor <init>(Lstoreautoupdater/Updater$1;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     .registers 5
 
-    iput-object p1, p0, Lcom/spotify/updater/Updater$1$1;->this$1:Lcom/spotify/updater/Updater$1;
+    iput-object p1, p0, Lstoreautoupdater/Updater$1$1;->this$1:Lstoreautoupdater/Updater$1;
 
-    iput-object p2, p0, Lcom/spotify/updater/Updater$1$1;->val$currentVersion:Ljava/lang/String;
+    iput-object p2, p0, Lstoreautoupdater/Updater$1$1;->val$currentVersion:Ljava/lang/String;
 
-    iput-object p3, p0, Lcom/spotify/updater/Updater$1$1;->val$newVersion:Ljava/lang/String;
+    iput-object p3, p0, Lstoreautoupdater/Updater$1$1;->val$newVersion:Ljava/lang/String;
 
-    iput-object p4, p0, Lcom/spotify/updater/Updater$1$1;->val$downloadUrl:Ljava/lang/String;
+    iput-object p4, p0, Lstoreautoupdater/Updater$1$1;->val$downloadUrl:Ljava/lang/String;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
@@ -47,7 +47,7 @@
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    iget-object v1, p0, Lcom/spotify/updater/Updater$1$1;->val$newVersion:Ljava/lang/String;
+    iget-object v1, p0, Lstoreautoupdater/Updater$1$1;->val$newVersion:Ljava/lang/String;
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -55,7 +55,7 @@
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    iget-object v1, p0, Lcom/spotify/updater/Updater$1$1;->val$currentVersion:Ljava/lang/String;
+    iget-object v1, p0, Lstoreautoupdater/Updater$1$1;->val$currentVersion:Ljava/lang/String;
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -69,9 +69,9 @@
 
     new-instance v1, Landroid/app/AlertDialog$Builder;
 
-    iget-object v2, p0, Lcom/spotify/updater/Updater$1$1;->this$1:Lcom/spotify/updater/Updater$1;
+    iget-object v2, p0, Lstoreautoupdater/Updater$1$1;->this$1:Lstoreautoupdater/Updater$1;
 
-    iget-object v2, v2, Lcom/spotify/updater/Updater$1;->val$context:Landroid/content/Context;
+    iget-object v2, v2, Lstoreautoupdater/Updater$1;->val$context:Landroid/content/Context;
 
     invoke-direct {v1, v2}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
 
@@ -87,9 +87,9 @@
 
     const-string v1, "Update"
 
-    new-instance v2, Lcom/spotify/updater/Updater$1$1$1;
+    new-instance v2, Lstoreautoupdater/Updater$1$1$1;
 
-    invoke-direct {v2, p0}, Lcom/spotify/updater/Updater$1$1$1;-><init>(Lcom/spotify/updater/Updater$1$1;)V
+    invoke-direct {v2, p0}, Lstoreautoupdater/Updater$1$1$1;-><init>(Lstoreautoupdater/Updater$1$1;)V
 
     invoke-virtual {v0, v1, v2}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
 
