@@ -1,6 +1,6 @@
 # classes.dex
 
-.class public Lcom/spotify/updater/Updater;
+.class public Lstoreautoupdater/Updater;
 .super Ljava/lang/Object;
 .source "Updater.java"
 
@@ -26,9 +26,9 @@
     .prologue
     new-instance v0, Ljava/lang/Thread;
 
-    new-instance v1, Lcom/spotify/updater/Updater$1;
+    new-instance v1, Lstoreautoupdater/Updater$1;
 
-    invoke-direct {v1, p0}, Lcom/spotify/updater/Updater$1;-><init>(Landroid/content/Context;)V
+    invoke-direct {v1, p0}, Lstoreautoupdater/Updater$1;-><init>(Landroid/content/Context;)V
 
     invoke-direct {v0, v1}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
 
