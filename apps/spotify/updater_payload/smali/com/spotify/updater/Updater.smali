@@ -4,11 +4,6 @@
 .super Ljava/lang/Object;
 .source "Updater.java"
 
-
-# static fields
-.field private static final GITHUB_API_URL:Ljava/lang/String; = "https://api.github.com/repos/lilor159357/spotify-no-images/releases/latest"
-
-
 # direct methods
 .method public constructor <init>()V
     .registers 1
