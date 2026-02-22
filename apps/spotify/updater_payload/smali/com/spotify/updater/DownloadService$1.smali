@@ -1,6 +1,6 @@
 # classes.dex
 
-.class Lcom/spotify/updater/DownloadService$1;
+.class Lstoreautoupdater/DownloadService$1;
 .super Ljava/lang/Object;
 
 # interfaces
@@ -9,7 +9,7 @@
 
 # annotations
 .annotation system Ldalvik/annotation/EnclosingMethod;
-    value = Lcom/spotify/updater/DownloadService;->onStartCommand(Landroid/content/Intent;II)I
+    value = Lstoreautoupdater/DownloadService;->onStartCommand(Landroid/content/Intent;II)I
 .end annotation
 
 .annotation system Ldalvik/annotation/InnerClass;
@@ -19,7 +19,7 @@
 
 
 # instance fields
-.field final synthetic this$0:Lcom/spotify/updater/DownloadService;
+.field final synthetic this$0:Lstoreautoupdater/DownloadService;
 
 .field final synthetic val$downloadUrl:Ljava/lang/String;
 
@@ -27,14 +27,14 @@
 
 
 # direct methods
-.method constructor <init>(Lcom/spotify/updater/DownloadService;Ljava/lang/String;Ljava/lang/String;)V
+.method constructor <init>(Lstoreautoupdater/DownloadService;Ljava/lang/String;Ljava/lang/String;)V
     .registers 4
 
-    iput-object p1, p0, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iput-object p1, p0, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
-    iput-object p2, p0, Lcom/spotify/updater/DownloadService$1;->val$downloadUrl:Ljava/lang/String;
+    iput-object p2, p0, Lstoreautoupdater/DownloadService$1;->val$downloadUrl:Ljava/lang/String;
 
-    iput-object p3, p0, Lcom/spotify/updater/DownloadService$1;->val$version:Ljava/lang/String;
+    iput-object p3, p0, Lstoreautoupdater/DownloadService$1;->val$version:Ljava/lang/String;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
@@ -54,7 +54,7 @@
 
     const-string v3, "notification"
 
-    iget-object v4, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v4, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
     invoke-virtual {v4, v3}, Landroid/app/Service;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
 
@@ -64,7 +64,7 @@
 
     new-instance v4, Landroid/app/Notification$Builder;
 
-    iget-object v5, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v5, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
     const-string v6, "download_channel"
 
@@ -80,7 +80,7 @@
 
     move-result-object v4
 
-    iget-object v5, v1, Lcom/spotify/updater/DownloadService$1;->val$version:Ljava/lang/String;
+    iget-object v5, v1, Lstoreautoupdater/DownloadService$1;->val$version:Ljava/lang/String;
 
     invoke-virtual {v4, v5}, Landroid/app/Notification$Builder;->setContentText(Ljava/lang/CharSequence;)Landroid/app/Notification$Builder;
 
@@ -109,7 +109,7 @@
 
     new-instance v5, Ljava/net/URL;
 
-    iget-object v6, v1, Lcom/spotify/updater/DownloadService$1;->val$downloadUrl:Ljava/lang/String;
+    iget-object v6, v1, Lstoreautoupdater/DownloadService$1;->val$downloadUrl:Ljava/lang/String;
 
     invoke-direct {v5, v6}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
 
@@ -127,7 +127,7 @@
 
     new-instance v6, Ljava/io/File;
 
-    iget-object v7, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v7, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
     const-string v8, "updates"
 
@@ -139,11 +139,11 @@
 
     invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v9, "spotify-update-"
+    const-string v9, "update-"
 
     invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    iget-object v9, v1, Lcom/spotify/updater/DownloadService$1;->val$version:Ljava/lang/String;
+    iget-object v9, v1, Lstoreautoupdater/DownloadService$1;->val$version:Ljava/lang/String;
 
     invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -234,13 +234,14 @@
 
     invoke-direct {v5, v6}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
 
-    iget-object v6, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v6, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
-    const-string v8, "com.spotify.music.provider"
+    # --- פלייסחולדר יוחלף אוטומטית ע"י פייתון ---
+    const-string v8, "__PROVIDER_AUTHORITY__"
 
     new-instance v2, Ljava/io/File;
 
-    iget-object v7, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v7, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
     const-string v9, "updates"
 
@@ -252,11 +253,11 @@
 
     invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v12, "spotify-update-"
+    const-string v12, "update-"
 
     invoke-virtual {v9, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
-    iget-object v12, v1, Lcom/spotify/updater/DownloadService$1;->val$version:Ljava/lang/String;
+    iget-object v12, v1, Lstoreautoupdater/DownloadService$1;->val$version:Ljava/lang/String;
 
     invoke-virtual {v9, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -286,7 +287,7 @@
 
     invoke-virtual {v5, v6}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
 
-    iget-object v6, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v6, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
     const/4 v7, 0x0
 
@@ -346,7 +347,7 @@
     :goto_12e
     move-object/from16 v1, p0
 
-    iget-object v0, v1, Lcom/spotify/updater/DownloadService$1;->this$0:Lcom/spotify/updater/DownloadService;
+    iget-object v0, v1, Lstoreautoupdater/DownloadService$1;->this$0:Lstoreautoupdater/DownloadService;
 
     invoke-virtual {v0}, Landroid/app/Service;->stopSelf()V
 
