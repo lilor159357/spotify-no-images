@@ -83,32 +83,27 @@ jobs:
 # ── Tools (Dynamic Download) ──
       - name: Download Latest Apktool & UberSigner
         if: steps.check_version.outputs.update_needed == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch latest Apktool
-          APKTOOL_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
-            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url' | head -n 1)
+          # 1. Fetch Apktool (via redirect)
+          # Get the final URL of the 'latest' release page
+          APKTOOL_TAG=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/iBotPeaches/Apktool/releases/latest | awk -F'/' '{print $NF}')
+          # Strip 'v' prefix if present to get version number
+          APKTOOL_VER="${APKTOOL_TAG#v}"
+          # Construct download URL (Standard pattern: apktool_X.Y.Z.jar)
+          APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/${APKTOOL_TAG}/apktool_${APKTOOL_VER}.jar"
           
-          if [ -z "$APKTOOL_URL" ]; then
-            echo "::error::Failed to fetch Apktool URL. Check API rate limits or jq filter."
-            exit 1
-          fi
-          
-          echo "Downloading Apktool from $APKTOOL_URL"
-          wget -q "$APKTOOL_URL" -O apktool.jar
+          echo "Detected Apktool version: $APKTOOL_TAG"
+          echo "Downloading from: $APKTOOL_URL"
+          wget -q "$APKTOOL_URL" -O apktool.jar || { echo "::error::Failed to download Apktool from $APKTOOL_URL"; exit 1; }
 
-          # Fetch latest Uber APK Signer
-          UBER_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/patrickfav/uber-apk-signer/releases/latest \
-            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url' | head -n 1)
+          # 2. Fetch Uber APK Signer (via redirect)
+          UBER_TAG=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/patrickfav/uber-apk-signer/releases/latest | awk -F'/' '{print $NF}')
+          UBER_VER="${UBER_TAG#v}"
+          UBER_URL="https://github.com/patrickfav/uber-apk-signer/releases/download/${UBER_TAG}/uber-apk-signer-${UBER_VER}.jar"
           
-          if [ -z "$UBER_URL" ]; then
-            echo "::error::Failed to fetch UberSigner URL."
-            exit 1
-          fi
-          
-          echo "Downloading UberSigner from $UBER_URL"
-          wget -q "$UBER_URL" -O ubersigner.jar
+          echo "Detected UberSigner version: $UBER_TAG"
+          echo "Downloading from: $UBER_URL"
+          wget -q "$UBER_URL" -O ubersigner.jar || { echo "::error::Failed to download UberSigner from $UBER_URL"; exit 1; }
 
       # ── Decode ──
       - name: Decode APK
