@@ -81,22 +81,25 @@ jobs:
         run: python run.py --app ${{ matrix.app }} --step download
 
 # ── Tools (Dynamic Download) ──
-      - name: Download Latest Apktool & UberSigner
+      - name: Download Apktool & UberSigner
         if: steps.check_version.outputs.update_needed == 'true'
         run: |
-          # 1. Fetch Apktool (via redirect)
-          # Get the final URL of the 'latest' release page
-          APKTOOL_TAG=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/iBotPeaches/Apktool/releases/latest | awk -F'/' '{print $NF}')
-          # Strip 'v' prefix if present to get version number
-          APKTOOL_VER="${APKTOOL_TAG#v}"
-          # Construct download URL (Standard pattern: apktool_X.Y.Z.jar)
-          APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/${APKTOOL_TAG}/apktool_${APKTOOL_VER}.jar"
+          # --- APKTOOL CONFIGURATION ---
+          # We pin to v2.12.1 because v3.0.0 is currently broken/missing assets
+          APKTOOL_VER="2.12.1"
+          APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar"
           
-          echo "Detected Apktool version: $APKTOOL_TAG"
-          echo "Downloading from: $APKTOOL_URL"
-          wget -q "$APKTOOL_URL" -O apktool.jar || { echo "::error::Failed to download Apktool from $APKTOOL_URL"; exit 1; }
+          echo "Downloading Apktool v${APKTOOL_VER}..."
+          wget -q "$APKTOOL_URL" -O apktool.jar
+          
+          # Verify download size (to catch 404 pages saved as jars)
+          if [ ! -s apktool.jar ]; then
+             echo "::error::Apktool download failed (empty file)."
+             exit 1
+          fi
 
-          # 2. Fetch Uber APK Signer (via redirect)
+          # --- UBERSIGNER (Keep Dynamic) ---
+          # Fetch tag redirect URL
           UBER_TAG=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/patrickfav/uber-apk-signer/releases/latest | awk -F'/' '{print $NF}')
           UBER_VER="${UBER_TAG#v}"
           UBER_URL="https://github.com/patrickfav/uber-apk-signer/releases/download/${UBER_TAG}/uber-apk-signer-${UBER_VER}.jar"
