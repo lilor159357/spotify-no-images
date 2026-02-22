@@ -5,3 +5,4 @@ manual_aptoide.py
 *.js
 aurora_asset_list.txt
 __pycache__
+*.diff
