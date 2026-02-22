@@ -297,6 +297,10 @@
 
     move-result-object v5
 
+    const v6, 0x1080082  # זהו הקוד של stat_sys_download_done
+
+    invoke-virtual {v4, v6}, Landroid/app/Notification$Builder;->setSmallIcon(I)Landroid/app/Notification$Builder;
+
     const/4 v6, 0x0
 
     invoke-virtual {v4, v6, v6, v6}, Landroid/app/Notification$Builder;->setProgress(IIZ)Landroid/app/Notification$Builder;
