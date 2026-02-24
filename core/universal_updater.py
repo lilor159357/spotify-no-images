@@ -260,7 +260,7 @@ def inject_universal_updater(
     payload_dir: str | None = None,
 ) -> bool:
     """
-    Inject Spotify-style updater payload and startup hook into an APK decompile.
+    Inject updater payload and startup hook into an APK decompile.
     """
     manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
     if not os.path.isfile(manifest_path):
@@ -292,7 +292,7 @@ def inject_universal_updater(
 
     if payload_dir is None:
         repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        payload_dir = os.path.join(repo_root, "apps", "spotify", "updater_payload")
+        payload_dir = os.path.join(repo_root, "core", "updater_payload")
 
     if not os.path.isdir(payload_dir):
         print(f"[-] CRITICAL: Updater payload directory not found: {payload_dir}")

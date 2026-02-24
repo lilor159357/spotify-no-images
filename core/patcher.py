@@ -55,7 +55,7 @@ def run_patch(app_id: str, decompiled_dir: str) -> bool:
         return False
 
     if app_id != "spotify":
-        print(f"[*] [{app_id}] Applying Spotify-style updater injection...")
+        print(f"[*] [{app_id}] Applying updater injection...")
         updater_success = inject_universal_updater(decompiled_dir=decompiled_dir, app_id=app_id)
         if not updater_success:
             print(f"[-] [{app_id}] Updater injection failed.")
