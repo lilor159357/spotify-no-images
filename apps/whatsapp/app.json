@@ -4,4 +4,6 @@
   "package_name": "com.whatsapp",
   "source": "apkmirror",
   "skip_mitm": true
+  "version_file": "apps/whatsapp/version.txt",
+  "status_file": "apps/whatsapp/status.json"
 }
