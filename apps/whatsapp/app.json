@@ -1,0 +1,7 @@
+{
+  "id": "whatsapp",
+  "name": "WhatsApp",
+  "package_name": "com.whatsapp",
+  "source": "apkmirror",
+  "skip_mitm": true
+}
