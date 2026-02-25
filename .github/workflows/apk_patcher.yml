@@ -81,36 +81,33 @@ jobs:
         run: python run.py --app ${{ matrix.app }} --step download
 
 # ── Tools (Dynamic Download) ──
-      - name: Download Latest Apktool & UberSigner
+      - name: Download Apktool & UberSigner
         if: steps.check_version.outputs.update_needed == 'true'
         run: |
-          # Fetch latest Apktool
-          APKTOOL_URL=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
-            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url')
-          echo "Downloading Apktool from $APKTOOL_URL"
+          # --- APKTOOL CONFIGURATION ---
+          # We pin to v2.12.1 because v3.0.0 is currently broken/missing assets
+          APKTOOL_VER="2.12.1"
+          APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar"
+          
+          echo "Downloading Apktool v${APKTOOL_VER}..."
           wget -q "$APKTOOL_URL" -O apktool.jar
+          
+          # Verify download size (to catch 404 pages saved as jars)
+          if [ ! -s apktool.jar ]; then
+             echo "::error::Apktool download failed (empty file)."
+             exit 1
+          fi
 
-          # Fetch latest Uber APK Signer
-          UBER_URL=$(curl -s https://api.github.com/repos/patrickfav/uber-apk-signer/releases/latest \
-            | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url')
-          echo "Downloading UberSigner from $UBER_URL"
-          wget -q "$UBER_URL" -O ubersigner.jar
-           # ── Phase 1: WhatsApp Patcher (השלב החדש שתוסיף כאן) ──
-      - name: Apply WhatsApp Patcher (Schwartzblat)
-        if: steps.check_version.outputs.update_needed == 'true' && matrix.app == 'whatsapp'
-        run: |
-          # מורידים את הריפו של שוורצבלט ומתקינים דרישות
-          git clone https://github.com/Schwartzblat/WhatsAppPatcher.git
-          cd WhatsAppPatcher
-          pip install -r requirements.txt
-          pip install --index-url https://test.pypi.org/simple/ stitch-test -U
+          # --- UBERSIGNER (Keep Dynamic) ---
+          # Fetch tag redirect URL
+          UBER_TAG=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/patrickfav/uber-apk-signer/releases/latest | awk -F'/' '{print $NF}')
+          UBER_VER="${UBER_TAG#v}"
+          UBER_URL="https://github.com/patrickfav/uber-apk-signer/releases/download/${UBER_TAG}/uber-apk-signer-${UBER_VER}.jar"
           
-          # מריצים את הפאצ'ר על ה-APK המקורי שהרגע ירד (latest.apk) ללא חתימה
-          python main.py -p ../latest.apk -o ../latest_patched.apk --no-sign
-          
-          # דורסים את הקובץ המקורי עם הקובץ הערוך, כדי ש-apktool יעבוד עליו בשלב הבא
-          cd ..
-          mv latest_patched.apk latest.apk
+          echo "Detected UberSigner version: $UBER_TAG"
+          echo "Downloading from: $UBER_URL"
+          wget -q "$UBER_URL" -O ubersigner.jar || { echo "::error::Failed to download UberSigner from $UBER_URL"; exit 1; }
+
       # ── Decode ──
       - name: Decode APK
         if: steps.check_version.outputs.update_needed == 'true'
@@ -170,23 +167,24 @@ jobs:
           "
 
       # ── Commit changes ──
-      - name: Commit version & status updates
+      - name: Commit and Push version & status
         if: always()
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          # משוך שינויים אחרונים קודם, ללא rebase
+          git pull origin ${{ github.ref_name }}
           git add apps/${{ matrix.app }}/version.txt apps/${{ matrix.app }}/status.json
-          git commit -m "[${{ matrix.app }}] Update to ${{ steps.check_version.outputs.new_version || 'status update' }}" || echo "No changes to commit"
-          git pull origin main --rebase -X theirs
-          git push origin main
+          # אם יש קונפליקטים, ה-checkout --ours יפתור אותם אוטומטית וישמור על הגרסה של הבוט
+          git commit -m "[${{ matrix.app }}] Update to ${{ steps.check_version.outputs.new_version || 'status update' }}" || git checkout --ours apps/${{ matrix.app }}/*
+          git push origin HEAD:${{ github.ref_name }}
 
       # ── Tag & Release ──
-      - name: Create tag
+      - name: Create tag and Force Push
         if: steps.check_version.outputs.update_needed == 'true' && success()
         run: |
-          git pull origin main --rebase
-          git tag ${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
-          git push origin --tags
+          git tag -f ${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
+          git push origin --tags --force
 
       - name: Create GitHub Release
         if: steps.check_version.outputs.update_needed == 'true' && success()
@@ -228,7 +226,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin ${{ github.ref_name }}
           git add apps.json
-          git commit -m "update apps.json listing [skip ci]" || echo "No changes to commit"
-          git pull origin main --rebase -X theirs
-          git push origin main
+          git commit -m "update apps.json listing [skip ci]" || git checkout --ours apps.json
+          git push origin HEAD:${{ github.ref_name }}
