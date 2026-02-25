@@ -178,7 +178,7 @@ jobs:
           git add apps/${{ matrix.app }}/version.txt apps/${{ matrix.app }}/status.json
           git commit -m "[${{ matrix.app }}] Update to ${{ steps.check_version.outputs.new_version || 'status update' }}" || echo "No changes to commit"
           git pull origin main --rebase -X theirs
-          git push origin main
+          git push origin main HEAD:main
 
       # ── Tag & Release ──
       - name: Create tag
@@ -231,4 +231,4 @@ jobs:
           git add apps.json
           git commit -m "update apps.json listing [skip ci]" || echo "No changes to commit"
           git pull origin main --rebase -X theirs
-          git push origin main
+          git push origin main HEAD:main
