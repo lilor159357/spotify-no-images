@@ -25,6 +25,7 @@ from core.utils import (
 )
 from core.downloader import download_app
 from core.patcher import run_patch
+from core.cloner import run_clone
 
 
 def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
@@ -92,6 +93,18 @@ def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
             print(f"[-] [{app_id}] Patching failed!")
             return False
 
+        if "clone_config" in config:
+            clone_success = run_clone(decompiled_dir, config["clone_config"])
+            if not clone_success:
+                update_status(
+                    config["status_file"],
+                    success=False,
+                    failed_version=new_version if (step == "all" and new_version) else "unknown",
+                    error_message="Cloning failed",
+                )
+                print(f"[-] [{app_id}] Cloning failed!")
+                return False
+        
         # If we are here, patch was successful.
         update_status(config["status_file"], success=True)
         
