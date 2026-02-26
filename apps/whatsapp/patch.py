@@ -2,12 +2,18 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v2)...")
     
-    # ביצוע הפאצ'ים
+    # 1. Profile Photos Block
     photos = _patch_profile_photos(decompiled_dir)
+    
+    # 2. Newsletter/Channels Block
     newsletter = _patch_newsletter_launcher(decompiled_dir)
+    
+    # 3. Updates Tab Removal
     tabs = _patch_home_tabs(decompiled_dir)
+    
+    # 4. Anti-Crash Fix
     spi = _patch_secure_pending_intent(decompiled_dir)
 
     results = [photos, newsletter, tabs, spi]
@@ -23,7 +29,8 @@ def patch(decompiled_dir: str) -> bool:
         return False
 
 # ---------------------------------------------------------
-# 1. חסימת תמונות פרופיל - זיהוי כירורגי לפי פרמטרים
+# 1. חסימת תמונות פרופיל (Profile Photos)
+# Based on file: LX/0lK (contactPhotosBitmapManager)
 # ---------------------------------------------------------
 def _patch_profile_photos(root_dir):
     anchor = 'contactPhotosBitmapManager/getphotofast/'
@@ -37,31 +44,32 @@ def _patch_profile_photos(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # --- זיהוי A04 (Bitmap) ---
-        # הטריק: אנחנו מחפשים את סיומת הפרמטרים הייחודית: FIJZZ
-        # F=Float, I=Int, J=Long, Z=Boolean, Z=Boolean
-        # L[^;]+; תופס את האובייקט LX/0IB לא משנה מה שמו
-        bmp_fingerprint = r"(\.method.*? \w+\(Landroid\/content\/Context;L[^;]+;Ljava\/lang\/String;FIJZZ\)Landroid\/graphics\/Bitmap;\s*\.registers \d+)"
-        
-        if re.search(bmp_fingerprint, content):
-            content = re.sub(bmp_fingerprint, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
-            print("[+] Profile Photos: Specific Bitmap loader (A04) identified and blocked.")
+        # Patch A00 (Private Final): FIJZ (Float, Int, Long, Bool)
+        # שיטה פנימית לפענוח
+        a00_regex = r"(\.method private final \w+\(Landroid\/content\/Context;L[^;]+;Ljava\/lang\/String;FIJZ\)Landroid\/graphics\/Bitmap;)"
+        if re.search(a00_regex, content):
+            content = re.sub(a00_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
+            print("[+] Profile Photos: Internal decoder (A00/FIJZ) blocked.")
         else:
-            print("[-] Profile Photos: Specific Bitmap signature (FIJZZ) not found. Trying fallback...")
-            # Fallback: אם הוא לא מוצא את הספציפי, נסה לחסום כל מה שמחזיר Bitmap בקובץ הזה
-            fallback_regex = r"(\.method .*? \w+\(.*?\).*?Landroid\/graphics\/Bitmap;\s*\.registers \d+)"
-            content, count = re.subn(fallback_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content)
-            print(f"[i] Fallback: Blocked {count} generic Bitmap methods.")
+            print("[-] Profile Photos: A00 signature not found.")
 
-        # --- זיהוי A07 (InputStream) ---
-        # הטריק: אובייקט אחד ואחריו בולאן (Z)
-        stream_fingerprint = r"(\.method.*? \w+\(L[^;]+;Z\)Ljava\/io\/InputStream;\s*\.registers \d+)"
-        
-        if re.search(stream_fingerprint, content):
-            content = re.sub(stream_fingerprint, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
-            print("[+] Profile Photos: Specific Stream loader (A07) identified and blocked.")
+        # Patch A04 (Public Final): FIJZZ (Float, Int, Long, Bool, Bool)
+        # שיטה ציבורית לפענוח
+        a04_regex = r"(\.method public final \w+\(Landroid\/content\/Context;L[^;]+;Ljava\/lang\/String;FIJZZ\)Landroid\/graphics\/Bitmap;)"
+        if re.search(a04_regex, content):
+            content = re.sub(a04_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
+            print("[+] Profile Photos: Public decoder (A04/FIJZZ) blocked.")
         else:
-            print("[-] Profile Photos: Specific Stream signature not found.")
+            print("[-] Profile Photos: A04 signature not found.")
+
+        # Patch A07 (InputStream): (Object, Boolean) -> InputStream
+        # חסימת הזרמת הקובץ המלא
+        a07_regex = r"(\.method public final \w+\(L[^;]+;Z\)Ljava\/io\/InputStream;)"
+        if re.search(a07_regex, content):
+            content = re.sub(a07_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
+            print("[+] Profile Photos: Stream loader (A07) blocked.")
+        else:
+            print("[-] Profile Photos: A07 signature not found.")
 
         with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
         return True
@@ -71,7 +79,8 @@ def _patch_profile_photos(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 2. חיסול מנגנון פתיחת הערוצים (Launcher)
+# 2. נטרול ערוצים וניוזלטרים (Newsletter Launcher)
+# Based on file: LX/AhT
 # ---------------------------------------------------------
 def _patch_newsletter_launcher(root_dir):
     anchor = "NewsletterLinkLauncher/type not handled"
@@ -86,21 +95,22 @@ def _patch_newsletter_launcher(root_dir):
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         injection = "\n    return-void"
 
-        # חסימת Deep Links (Context, Uri)
-        entry_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;\)V\s*\.registers \d+)"
-        if re.search(entry_regex, content):
-            content = re.sub(entry_regex, r"\1" + injection, content, count=1)
-            print("[+] Newsletter: Entry point (Deep Links) killed.")
+        # Patch A01: Deep Link Entry (Context, Uri)
+        a01_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;\)V)"
+        if re.search(a01_regex, content):
+            content = re.sub(a01_regex, r"\1" + injection, content, count=1)
+            print("[+] Newsletter: Deep Link entry (A01) killed.")
         else:
-             print("[-] Newsletter: Entry point signature not found.")
+             print("[-] Newsletter: A01 signature not found.")
 
-        # חסימת Main Logic - חתימה עם הרבה פרמטרים שמסתיימת ב-IJ
-        main_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;.*?IJ\)V\s*\.registers \d+)"
-        if re.search(main_regex, content):
-            content = re.sub(main_regex, r"\1" + injection, content, count=1)
-            print("[+] Newsletter: Main logic launcher killed.")
+        # Patch A02: Main Logic (Context, Uri, Jid, Integer, Long, String, Int, Long)
+        # שימוש ב-Regex גמיש מעט עבור טיפוסי הג'אווה הארוכים
+        a02_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;L[^;]+;Ljava\/lang\/Integer;Ljava\/lang\/Long;Ljava\/lang\/String;IJ\)V)"
+        if re.search(a02_regex, content):
+            content = re.sub(a02_regex, r"\1" + injection, content, count=1)
+            print("[+] Newsletter: Main Launcher logic (A02) killed.")
         else:
-            print("[-] Newsletter: Main logic signature not found.")
+            print("[-] Newsletter: A02 signature not found.")
 
         with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
         return True
@@ -109,7 +119,8 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת לשונית העדכונים (0x12c) בלבד
+# 3. הסרת טאב העדכונים (Home Tabs)
+# Based on file: LX/0tj
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -123,12 +134,19 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # מזהה 0x12c = עדכונים
-        updates_regex = r"(const/16 [vp]\d+, 0x12c\s+.*?)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+        # חיפוש הבלוק שמוסיף את 0x12c (300) לרשימה
+        # אנו מחפשים את הטעינה של 12c, המרה ל-Integer, ואז קריאה ל-add
+        updates_regex = r"(const/16 [vp]\d+, 0x12c\s+.*?invoke-static \{[vp]\d+\}, Ljava\/lang\/Integer;->valueOf\(I\)Ljava\/lang\/Integer;\s+.*?invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava\/util\/AbstractCollection;->add\(Ljava\/lang\/Object;\)Z)"
         
         if re.search(updates_regex, content, re.DOTALL):
-            content = re.sub(updates_regex, r"\1# \2", content, count=1, flags=re.DOTALL)
-            print("[+] Home Tabs: Updates/Channels tab (0x12c) removed.")
+            # הפיכת כל הבלוק הזה להערה כדי למנוע את ההוספה
+            # שימוש בפונקציית lambda כדי להוסיף # לכל שורה בבלוק שנמצא
+            def comment_out(match):
+                block = match.group(1)
+                return "\n".join(["#" + line for line in block.splitlines()])
+
+            content = re.sub(updates_regex, comment_out, content, count=1, flags=re.DOTALL)
+            print("[+] Home Tabs: Updates/Channels tab (0x12c) removed via logic patching.")
         else:
             print("[-] Home Tabs: Updates tab pattern not found.")
 
@@ -141,24 +159,34 @@ def _patch_home_tabs(root_dir):
 
 # ---------------------------------------------------------
 # 4. תיקון קריסת SecurePendingIntent
+# Based on file: LX/0sw
 # ---------------------------------------------------------
 def _patch_secure_pending_intent(root_dir):
     anchor = "Please set reporter for SecurePendingIntent library"
-    # לא מדפיסים לוגים אם הקובץ לא נמצא, זה תיקון אופציונלי
     
     target_file = _find_file_by_string(root_dir, anchor)
     if not target_file:
-        return True 
+        print("[-] SecurePendingIntent file not found.")
+        return True # לא קריטי
 
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        pattern = r"(if-nez [vp]\d+, (:cond_\w+))(\s+.+?Please set reporter for SecurePendingIntent library)"
+        # בקובץ ששלחת: if-nez v0, :cond_24 ... throw exception
+        # אנחנו רוצים שאם התנאי הוא לא-אפס (הצלחה), הוא יקפוץ.
+        # אבל הקוד המקורי זורק שגיאה אם הוא ממשיך.
+        # הפתרון: להחליף את ה-Check ב-Goto בלתי מותנה להצלחה.
+        
+        pattern = r"(if-nez [vp]\d+, (:cond_\w+))(\s+.*?)(const-string [vp]\d+, \"Please set reporter)"
+        
         if re.search(pattern, content, re.DOTALL):
-            new_content = re.sub(pattern, r"goto \2\3", content, count=1, flags=re.DOTALL)
-            with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content)
-            print(f"[+] SecurePendingIntent patched.")
-            return True
+            # מחליף את ה-if-nez (תנאי) ב-goto (קפיצה ודאית) לתווית ההצלחה
+            content = re.sub(pattern, r"goto \2\3\4", content, count=1, flags=re.DOTALL)
+            print(f"[+] SecurePendingIntent patched (Check bypassed).")
+            with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
+        else:
+             print("[-] SecurePendingIntent pattern not found.")
+            
         return True
 
     except Exception as e:
@@ -166,7 +194,7 @@ def _patch_secure_pending_intent(root_dir):
         return False
 
 # ---------------------------------------------------------
-# פונקציות עזר
+# Helpers
 # ---------------------------------------------------------
 def _find_file_by_string(root_dir, search_string):
     for root, dirs, files in os.walk(root_dir):
