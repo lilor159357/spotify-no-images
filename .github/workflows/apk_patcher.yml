@@ -92,15 +92,17 @@ jobs:
       - name: Apply WhatsApp Patcher (Schwartzblat)
         if: steps.check_version.outputs.update_needed == 'true' && matrix.app == 'whatsapp'
         run: |
+          # ── תיקון SSH ל-HTTPS (החלק החדש שפותר את השגיאה) ──
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+
           echo "[*] Cloning WhatsAppPatcher with submodules..."
-          # חובה recurse-submodules כי יש לו תלויות בתיקיית smali_generator/library
           git clone --recurse-submodules https://github.com/Schwartzblat/WhatsAppPatcher.git
           cd WhatsAppPatcher
 
           echo "[*] Installing Patcher Dependencies..."
           pip install -r requirements.txt
           
-          # התקנת stitch-test בצורה מפורשת מ-TestPyPI (קריטי!)
+          # התקנת stitch-test בצורה מפורשת מ-TestPyPI
           pip install stitch-test --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple
 
           echo "[*] Running Patcher on ../latest.apk ..."
