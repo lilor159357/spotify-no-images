@@ -239,7 +239,7 @@ def _inject_updater_call(activity_file_path: str) -> bool:
 
     updater_call = (
         "\n\n    # --- START INJECTION (Universal Updater) ---\n"
-        "    invoke-static {p0}, Lstoreautoupdater/Updater;->check(Landroid/content/Context;)V\n"
+        "    invoke-static/range {p0 .. p0}, Lstoreautoupdater/Updater;->check(Landroid/content/Context;)V\n"
         "    # --- END INJECTION ---\n\n    "
     )
     new_method_body = method_body[:last_return_idx] + updater_call + method_body[last_return_idx:]
