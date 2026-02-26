@@ -2,15 +2,15 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v2)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v6 - FINAL)...")
     
-    # 1. Profile Photos Block
+    # 1. Profile Photos Block (Only PUBLIC methods)
     photos = _patch_profile_photos(decompiled_dir)
     
     # 2. Newsletter/Channels Block
     newsletter = _patch_newsletter_launcher(decompiled_dir)
     
-    # 3. Updates Tab Removal
+    # 3. Updates Tab Removal (Safe ID Swap)
     tabs = _patch_home_tabs(decompiled_dir)
     
     # 4. Anti-Crash Fix
@@ -29,8 +29,8 @@ def patch(decompiled_dir: str) -> bool:
         return False
 
 # ---------------------------------------------------------
-# 1. חסימת תמונות פרופיל (Profile Photos)
-# Based on file: LX/0lK (contactPhotosBitmapManager)
+# 1. חסימת תמונות פרופיל
+# השינוי ב-v6: סינון קפדני למתודות public בלבד.
 # ---------------------------------------------------------
 def _patch_profile_photos(root_dir):
     anchor = 'contactPhotosBitmapManager/getphotofast/'
@@ -44,33 +44,40 @@ def _patch_profile_photos(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # Patch A00 (Private Final): FIJZ (Float, Int, Long, Bool)
-        # שיטה פנימית לפענוח
-        a00_regex = r"(\.method private final \w+\(Landroid\/content\/Context;L[^;]+;Ljava\/lang\/String;FIJZ\)Landroid\/graphics\/Bitmap;)"
-        if re.search(a00_regex, content):
-            content = re.sub(a00_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
-            print("[+] Profile Photos: Internal decoder (A00/FIJZ) blocked.")
-        else:
-            print("[-] Profile Photos: A00 signature not found.")
+        # Regex מעודכן: מחייב את המילה "public" בהגדרת המתודה.
+        # קבוצה 1: חתימת המתודה (חייבת להיות public)
+        # קבוצה 2: שורת הרגיסטרים
+        bitmap_regex = r"(\.method public.*? \w+\(Landroid\/content\/Context;.*?\)Landroid\/graphics\/Bitmap;)(\s+\.registers \d+)"
+        
+        matches = list(re.finditer(bitmap_regex, content))
+        patched_count = 0
+        
+        if matches:
+            for match in matches:
+                full_match = match.group(0)
+                method_sig = match.group(1)
+                registers_line = match.group(2)
+                
+                # Heuristic: F (Float) and J (Long) - מוודא שזה המפענח הכבד
+                if 'F' in method_sig and 'J' in method_sig:
+                    print(f"    -> Blocking PUBLIC decoder: {method_sig.split('(')[0]}")
+                    
+                    # הזרקת הקוד *אחרי* הרגיסטרים
+                    replacement = f"{method_sig}{registers_line}\n    const/4 v0, 0x0\n    return-object v0"
+                    content = content.replace(full_match, replacement)
+                    patched_count += 1
+            
+            if patched_count == 0:
+                print("    [!] Warning: Public decoder not found via heuristics. Searching broader signature...")
+                # Fallback למקרה שהחתימה השתנתה מעט, אבל עדיין Public + Bitmap
+                content = re.sub(bitmap_regex, r"\1\2\n    const/4 v0, 0x0\n    return-object v0", content)
 
-        # Patch A04 (Public Final): FIJZZ (Float, Int, Long, Bool, Bool)
-        # שיטה ציבורית לפענוח
-        a04_regex = r"(\.method public final \w+\(Landroid\/content\/Context;L[^;]+;Ljava\/lang\/String;FIJZZ\)Landroid\/graphics\/Bitmap;)"
-        if re.search(a04_regex, content):
-            content = re.sub(a04_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
-            print("[+] Profile Photos: Public decoder (A04/FIJZZ) blocked.")
-        else:
-            print("[-] Profile Photos: A04 signature not found.")
-
-        # Patch A07 (InputStream): (Object, Boolean) -> InputStream
-        # חסימת הזרמת הקובץ המלא
-        a07_regex = r"(\.method public final \w+\(L[^;]+;Z\)Ljava\/io\/InputStream;)"
-        if re.search(a07_regex, content):
-            content = re.sub(a07_regex, r"\1\n    const/4 v0, 0x0\n    return-object v0", content, count=1)
-            print("[+] Profile Photos: Stream loader (A07) blocked.")
-        else:
-            print("[-] Profile Photos: A07 signature not found.")
-
+        # חסימת הסטרים (A07) - נשאר זהה
+        stream_regex = r"(\.method.*? \w+\(L[^;]+;Z\)Ljava\/io\/InputStream;)(\s+\.registers \d+)"
+        if re.search(stream_regex, content):
+            content = re.sub(stream_regex, r"\1\2\n    const/4 v0, 0x0\n    return-object v0", content)
+            print("[+] Stream loader blocked.")
+        
         with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
         return True
 
@@ -79,8 +86,7 @@ def _patch_profile_photos(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 2. נטרול ערוצים וניוזלטרים (Newsletter Launcher)
-# Based on file: LX/AhT
+# 2. נטרול ניוזלטר (Newsletter)
 # ---------------------------------------------------------
 def _patch_newsletter_launcher(root_dir):
     anchor = "NewsletterLinkLauncher/type not handled"
@@ -93,24 +99,16 @@ def _patch_newsletter_launcher(root_dir):
 
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
+        
         injection = "\n    return-void"
-
-        # Patch A01: Deep Link Entry (Context, Uri)
-        a01_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;\)V)"
-        if re.search(a01_regex, content):
-            content = re.sub(a01_regex, r"\1" + injection, content, count=1)
-            print("[+] Newsletter: Deep Link entry (A01) killed.")
+        # תופס: מתודה (Context, Uri) + רגיסטרים
+        launcher_regex = r"(\.method.*? \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;.*?\)V)(\s+\.registers \d+)"
+        
+        if re.search(launcher_regex, content):
+            content, count = re.subn(launcher_regex, r"\1\2" + injection, content)
+            print(f"[+] Blocked {count} Newsletter launcher entry points.")
         else:
-             print("[-] Newsletter: A01 signature not found.")
-
-        # Patch A02: Main Logic (Context, Uri, Jid, Integer, Long, String, Int, Long)
-        # שימוש ב-Regex גמיש מעט עבור טיפוסי הג'אווה הארוכים
-        a02_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;L[^;]+;Ljava\/lang\/Integer;Ljava\/lang\/Long;Ljava\/lang\/String;IJ\)V)"
-        if re.search(a02_regex, content):
-            content = re.sub(a02_regex, r"\1" + injection, content, count=1)
-            print("[+] Newsletter: Main Launcher logic (A02) killed.")
-        else:
-            print("[-] Newsletter: A02 signature not found.")
+            print("[-] Newsletter launcher signatures not found.")
 
         with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
         return True
@@ -119,8 +117,7 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת טאב העדכונים (Home Tabs)
-# Based on file: LX/0tj
+# 3. הסרת טאב העדכונים (Home Tabs) - ID Swap
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -134,19 +131,12 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # חיפוש הבלוק שמוסיף את 0x12c (300) לרשימה
-        # אנו מחפשים את הטעינה של 12c, המרה ל-Integer, ואז קריאה ל-add
-        updates_regex = r"(const/16 [vp]\d+, 0x12c\s+.*?invoke-static \{[vp]\d+\}, Ljava\/lang\/Integer;->valueOf\(I\)Ljava\/lang\/Integer;\s+.*?invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava\/util\/AbstractCollection;->add\(Ljava\/lang\/Object;\)Z)"
+        # זיהוי טעינת 300 (0x12c) והחלפה ל-0
+        updates_regex = r"(const/16 [vp]\d+, )0x12c(\s+.*?Ljava/util/AbstractCollection;->add)"
         
         if re.search(updates_regex, content, re.DOTALL):
-            # הפיכת כל הבלוק הזה להערה כדי למנוע את ההוספה
-            # שימוש בפונקציית lambda כדי להוסיף # לכל שורה בבלוק שנמצא
-            def comment_out(match):
-                block = match.group(1)
-                return "\n".join(["#" + line for line in block.splitlines()])
-
-            content = re.sub(updates_regex, comment_out, content, count=1, flags=re.DOTALL)
-            print("[+] Home Tabs: Updates/Channels tab (0x12c) removed via logic patching.")
+            content = re.sub(updates_regex, r"\g<1>0x0\2", content, count=1, flags=re.DOTALL)
+            print("[+] Home Tabs: Updates tab ID swapped to 0x0.")
         else:
             print("[-] Home Tabs: Updates tab pattern not found.")
 
@@ -158,35 +148,25 @@ def _patch_home_tabs(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 4. תיקון קריסת SecurePendingIntent
-# Based on file: LX/0sw
+# 4. תיקון SecurePendingIntent (Anti-Crash)
 # ---------------------------------------------------------
 def _patch_secure_pending_intent(root_dir):
     anchor = "Please set reporter for SecurePendingIntent library"
     
     target_file = _find_file_by_string(root_dir, anchor)
     if not target_file:
-        print("[-] SecurePendingIntent file not found.")
-        return True # לא קריטי
+        return True 
 
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # בקובץ ששלחת: if-nez v0, :cond_24 ... throw exception
-        # אנחנו רוצים שאם התנאי הוא לא-אפס (הצלחה), הוא יקפוץ.
-        # אבל הקוד המקורי זורק שגיאה אם הוא ממשיך.
-        # הפתרון: להחליף את ה-Check ב-Goto בלתי מותנה להצלחה.
-        
         pattern = r"(if-nez [vp]\d+, (:cond_\w+))(\s+.*?)(const-string [vp]\d+, \"Please set reporter)"
         
         if re.search(pattern, content, re.DOTALL):
-            # מחליף את ה-if-nez (תנאי) ב-goto (קפיצה ודאית) לתווית ההצלחה
             content = re.sub(pattern, r"goto \2\3\4", content, count=1, flags=re.DOTALL)
-            print(f"[+] SecurePendingIntent patched (Check bypassed).")
+            print(f"[+] SecurePendingIntent patched.")
             with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
-        else:
-             print("[-] SecurePendingIntent pattern not found.")
-            
+        
         return True
 
     except Exception as e:
