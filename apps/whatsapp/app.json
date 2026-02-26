@@ -10,5 +10,10 @@
   "repo": "Schwartzblat/WhatsAppPatcher",
   "skip_mitm": true,
   "version_file": "apps/whatsapp/version.txt",
-  "status_file": "apps/whatsapp/status.json"
+  "status_file": "apps/whatsapp/status.json",
+  "clone_config": {
+    "old_pkg": "com.whatsapp",
+    "new_pkg": "com.whatsapp.kosher",
+    "app_name_suffix": " 2"
+  }
 }
