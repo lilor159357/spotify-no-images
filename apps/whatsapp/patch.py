@@ -2,7 +2,7 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v13 - 0x12c TARGET)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v16 - METHOD ISOLATION)...")
     
     # ביצוע הפאצ'ים
     photos = _patch_profile_photos(decompiled_dir)
@@ -93,7 +93,7 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת טאב העדכונים (Home Tabs) - Target 0x12c (Updates)
+# 3. הסרת טאב העדכונים (Home Tabs) - METHOD ISOLATION
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -107,20 +107,39 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # מכוונים ספציפית ל-0x12c (עדכונים)
-        # 1. מוצאים את השורה const/16 v0, 0x12c
-        # 2. לוקחים את כל מה שבאמצע (.*?) בצורה "קמצנית" (כדי לא לדלג ל-add הבא)
-        # 3. תופסים את ה-add שבא מיד אחריו
-        updates_regex = r"(const/16 [vp]\d+, 0x12c.*?)((?:invoke-virtual|invoke-interface) \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+        # מחלקים את הקובץ לבלוקים של מתודות, כדי למנוע זליגה של ה-Regex ממתודה למתודה
+        method_pattern = re.compile(r'(\.method.*?\.end method)', re.DOTALL)
         
-        # משתמשים ב-count=1 כדי לוודא שאנחנו נוגעים רק במופע הראשון שנמצא (שזה הבלוק של 0x12c)
-        if re.search(updates_regex, content, re.DOTALL):
-            content = re.sub(updates_regex, r"\1# \2", content, count=1, flags=re.DOTALL)
-            print("    [+] Home Tabs: 'Updates' tab (0x12c) REMOVED from list.")
-            with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
+        new_content = content
+        patch_applied = False
+        
+        # סורקים כל מתודה בנפרד
+        for method_match in method_pattern.finditer(content):
+            method_body = method_match.group(1)
+            
+            # מחפשים את המתודה הספציפית שבתוכה מתבצעת בניית הרשימה
+            # היא חייבת להכיל גם 0x12c, גם 0x258, וגם הוספה ל-Collection
+            if "0x12c" in method_body and "0x258" in method_body and "AbstractCollection;->add" in method_body:
+                
+                # עכשיו אנחנו בטוחים ב-100% שאנחנו בתוך מתודה A05
+                # נחפש את ה-12c, ואת ה-add הראשון שבא אחריו. 
+                updates_regex = r"(const/16\s+[vp]\d+,\s*0x12c.*?)((?:invoke-virtual|invoke-interface)\s*\{[vp]\d+,\s*[vp]\d+\},\s*Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+                
+                if re.search(updates_regex, method_body, re.DOTALL):
+                    # מחליפים בהערה
+                    new_method_body = re.sub(updates_regex, r"\1# \2", method_body, count=1, flags=re.DOTALL)
+                    
+                    # מעדכנים את הקובץ המלא עם המתודה הערוכה
+                    new_content = new_content.replace(method_body, new_method_body)
+                    patch_applied = True
+                    print("    [+] Home Tabs: 'Updates' tab (0x12c) REMOVED from the target method.")
+                    break # מצאנו וטיפלנו, אפשר לעצור את הלולאה
+        
+        if patch_applied:
+            with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content)
             return True
         else:
-            print("    [-] Home Tabs: Exact removal pattern for 0x12c not found.")
+            print("    [-] Home Tabs: Target method found, but regex failed to match 0x12c block.")
             return False
 
     except Exception as e:
