@@ -93,7 +93,7 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת טאב העדכונים (Home Tabs) - התיקון הסופי v12
+# 3. הסרת טאב העדכונים (Home Tabs) - FIXED REGEX
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -107,16 +107,21 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # תוקן: הוסף רווח אחרי ה-const/16
-        updates_regex = r"(const/16 [vp]\d+, 0x12c.*?move-result-object [vp]\d+\s+)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+        # FIX: Regex עמיד יותר שלא מסתמך על רווחים בלבד, אלא תופס הכל עד ה-add
+        # מחפש את טעינת המספר 300 (0x12c), ותופס כל קוד שבא אחריו עד להוספה לרשימה
+        updates_regex = r"(const/16 [vp]\d+, 0x12c.*?)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
         
         if re.search(updates_regex, content, re.DOTALL):
-            content = re.sub(updates_regex, r"\g<1># \2", content, count=1, flags=re.DOTALL)
+            # הופך את שורת ההוספה (add) להערה (#) ובכך מנטרל את הוספת הטאב
+            content = re.sub(updates_regex, r"\1# \2", content, count=1, flags=re.DOTALL)
             print("    [+] Home Tabs: 'Updates' tab REMOVED from list.")
             with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
             return True
         else:
             print("    [-] Home Tabs: Exact removal pattern not found.")
+            # Debug output for analysis
+            if "0x12c" in content and "AbstractCollection;->add" in content:
+                 print("        [i] Debug: Found components but regex failed. Check manually.")
             return False
 
     except Exception as e:
