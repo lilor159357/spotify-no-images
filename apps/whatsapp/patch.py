@@ -18,7 +18,69 @@ def patch(decompiled_dir: str) -> bool:
     else:
         print("\n[FAILURE] One or more critical patches failed. Check logs.")
         return False
+        
+def _clone_whatsapp(root_dir):
+    print("\n[5] Cloning WhatsApp (Changing Package Name)...")
+    manifest_path = os.path.join(root_dir, "AndroidManifest.xml")
+    apktool_yml_path = os.path.join(root_dir, "apktool.yml")
+    
+    if not os.path.exists(manifest_path):
+        print("    [-] AndroidManifest.xml not found.")
+        return False
 
+    old_pkg = "com.whatsapp"
+    new_pkg = "com.whatsapp.kosher" # אתה יכול לשנות לכל שם חבילה שתרצה
+
+    try:
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 1. שינוי שם החבילה הראשי
+        content = re.sub(rf'package="{old_pkg}"', f'package="{new_pkg}"', content)
+
+        # 2. תיקון נתיבי מחלקות (Classes) שמתחילים בנקודה
+        # מחליף ".MainActivity" ל-"com.whatsapp.MainActivity"
+        # זה קריטי כי שינינו את ה-package למעלה, והקוד עצמו עדיין נמצא בנתיב הישן
+        content = re.sub(
+            r'(<(?:activity|service|receiver|provider|activity-alias)[^>]*?android:name=")(\.[^"]+)(")',
+            lambda m: m.group(1) + old_pkg + m.group(2) + m.group(3),
+            content
+        )
+
+        # 3. תיקון Provider Authorities (קריטי כדי שהאפליקציות לא יתנגשו בהתקנה)
+        content = content.replace(f'authorities="{old_pkg}', f'authorities="{new_pkg}')
+
+        # 4. תיקון הרשאות מותאמות אישית של וואטסאפ
+        content = content.replace(f'"{old_pkg}.permission.', f'"{new_pkg}.permission.')
+        content = content.replace(f'"{old_pkg}.intent.', f'"{new_pkg}.intent.')
+
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            
+        # 5. עדכון apktool.yml (למקרה ש-apktool דורס הגדרות)
+        if os.path.exists(apktool_yml_path):
+            with open(apktool_yml_path, 'r', encoding='utf-8') as f:
+                yml_content = f.read()
+            yml_content = re.sub(r'renameManifestPackage:.*', f'renameManifestPackage: {new_pkg}', yml_content)
+            with open(apktool_yml_path, 'w', encoding='utf-8') as f:
+                f.write(yml_content)
+
+        # 6. אופציונלי: שינוי שם האפליקציה שמוצג על המסך (כדי שתבדיל ביניהם)
+        strings_path = os.path.join(root_dir, "res", "values", "strings.xml")
+        if os.path.exists(strings_path):
+            with open(strings_path, 'r', encoding='utf-8') as f:
+                strings_content = f.read()
+            # משנה את שם האפליקציה ל-WhatsApp 2
+            strings_content = re.sub(r'<string name="app_name">WhatsApp</string>', r'<string name="app_name">WhatsApp 2</string>', strings_content)
+            with open(strings_path, 'w', encoding='utf-8') as f:
+                f.write(strings_content)
+
+        print(f"    [+] Successfully cloned. Package changed to: {new_pkg}")
+        return True
+
+    except Exception as e:
+        print(f"    [-] Error cloning WhatsApp: {e}")
+        return False
 # ---------------------------------------------------------
 # 1. חסימת תמונות פרופיל
 # ---------------------------------------------------------

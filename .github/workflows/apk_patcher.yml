@@ -88,47 +88,7 @@ jobs:
           UBER_URL=$(curl -s https://api.github.com/repos/patrickfav/uber-apk-signer/releases/latest | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url')
           wget -q "$UBER_URL" -O ubersigner.jar
 
-      # ── שלב 2: הפעלת הפאצ'ר של שוורצבלאט (רץ רק על וואטסאפ) ──
-      - name: Apply WhatsApp Patcher (Schwartzblat)
-        if: steps.check_version.outputs.update_needed == 'true' && matrix.app == 'whatsapp'
-        run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-
-          echo "[*] Cloning WhatsAppPatcher with submodules..."
-          git clone --recurse-submodules https://github.com/Schwartzblat/WhatsAppPatcher.git
-          cd WhatsAppPatcher
-
-          echo "[*] Installing Patcher Dependencies..."
-          pip install -r requirements.txt
-          pip install stitch-test --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple
-
-          echo "[*] Bypassing Firebase patch in WhatsAppPatcher (prevents API key crash)..."
-          python3 -c "
-          import os
-          path = 'main.py'
-          text = open(path).read()
-          # מוחק את הוספת ה-FirebaseParams לרשימת הפאצ'ים
-          text = text.replace('FirebaseParamsFinder(args),', '')
-          open(path, 'w').write(text)
-          
-          # מוחק את ה-hook מתוך קובץ הג'אבה הראשי כדי שלא יטען בכלל
-          java_path = 'smali_generator/app/src/main/java/com/smali_generator/TheAmazingPatch.java'
-          java_text = open(java_path).read()
-          java_text = java_text.replace('new FirebaseParams(),', '')
-          open(java_path, 'w').write(java_text)
-          "
-
-          echo "[*] Running Patcher on ../latest.apk ..."
-          python3 main.py -p ../latest.apk -o ../latest_patched.apk --no-sign
-          
-          cd ..
-          if [ -f "latest_patched.apk" ]; then
-            echo "[+] WhatsApp Patch successful. Replacing original APK."
-            mv latest_patched.apk latest.apk
-          else
-            echo "[-] WhatsApp Patch failed. Output file not found."
-            exit 1
-          fi
+      
 
       # ── שלב 3: המשך התהליך הרגיל (Decompile -> Kosher Patch -> Repack -> Sign) ──
       
@@ -139,7 +99,14 @@ jobs:
       - name: Apply patch
         if: steps.check_version.outputs.update_needed == 'true'
         run: python run.py --app ${{ matrix.app }} --step patch
-
+        
+      - name: Upload Forensics Data
+        if: always() # חשוב: הרץ את הצעד הזה גם אם צעדים אחרים נכשלים
+        uses: actions/upload-artifact@v4
+        with:
+          name: forensics-data # שם ה-artifact שיופיע
+          path: build_output/forensics_output/
+          
       - name: Repack APK
         if: steps.check_version.outputs.update_needed == 'true'
         run: java -jar apktool.jar b build_output -o patched_unsigned.apk
