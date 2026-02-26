@@ -2,7 +2,7 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v7 - VERBOSE)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v8 - ROBUST)...")
     
     photos = _patch_profile_photos(decompiled_dir)
     newsletter = _patch_newsletter_launcher(decompiled_dir)
@@ -22,7 +22,7 @@ def patch(decompiled_dir: str) -> bool:
         return False
 
 # ---------------------------------------------------------
-# 1. חסימת תמונות פרופיל (Profile Photos)
+# 1. חסימת תמונות פרופיל (Profile Photos) - Robust Regex
 # ---------------------------------------------------------
 def _patch_profile_photos(root_dir):
     anchor = 'contactPhotosBitmapManager/getphotofast/'
@@ -36,14 +36,13 @@ def _patch_profile_photos(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # חיפוש מתודות ציבוריות שמחזירות Bitmap
-        # קבוצה 1: חתימה
-        # קבוצה 2: רגיסטרים
-        bitmap_regex = r"(\.method public.*? \w+\(Landroid\/content\/Context;.*?\)Landroid\/graphics\/Bitmap;)([\s\S]*?\.registers \d+)"
+        # Regex V8: מתמקד רק בטיפוסים החשובים, ומתעלם מהשאר.
+        # קבוצה 1: כל החתימה עד לרגיסטרים
+        # קבוצה 2: שורת הרגיסטרים
+        bitmap_regex = r"(\.method public[\s\S]*?\(Landroid\/content\/Context;[\s\S]*?\)Landroid\/graphics\/Bitmap;)([\s\S]*?\.registers \d+)"
         
-        # שלב א': הדפסת מה נמצא לפני שינוי
         matches = list(re.finditer(bitmap_regex, content))
-        print(f"    [*] Found {len(matches)} public Bitmap loaders.")
+        print(f"    [*] Found {len(matches)} potential public Bitmap loaders via robust scan.")
         
         patched_count = 0
         new_content = content
@@ -51,29 +50,22 @@ def _patch_profile_photos(root_dir):
         for match in matches:
             full_match = match.group(0)
             method_sig = match.group(1)
-            registers = match.group(2)
             
-            clean_name = method_sig.split('(')[0].strip()
+            clean_name = re.search(r'\s(\S+)\(', method_sig).group(1) if re.search(r'\s(\S+)\(', method_sig) else "UNKNOWN"
             
-            # בדיקה יוריסטית: F ו-J
             if 'F' in method_sig and 'J' in method_sig:
                 print(f"    [+] BLOCKING TARGET: '{clean_name}' (Matches Heuristics F+J)")
-                
-                # הזרקה
-                replacement = f"{method_sig}{registers}\n    const/4 v0, 0x0\n    return-object v0"
+                replacement = f"{full_match}\n    const/4 v0, 0x0\n    return-object v0"
                 new_content = new_content.replace(full_match, replacement)
                 patched_count += 1
             else:
                 print(f"    [.] Ignoring: '{clean_name}' (Does not match heuristics)")
 
         if patched_count == 0 and len(matches) > 0:
-            print("    [!] Warning: Targets found but rejected by heuristics. Applying Fallback...")
-            # Fallback: חוסם את הראשון שמצאנו
-            match = matches[0]
-            full_match = match.group(0)
-            replacement = f"{match.group(1)}{match.group(2)}\n    const/4 v0, 0x0\n    return-object v0"
-            new_content = new_content.replace(full_match, replacement)
-            print(f"    [+] Fallback Block applied to: {match.group(1).split('(')[0]}")
+            print(f"    [!] Warning: Found {len(matches)} targets but none matched heuristics. No patch applied.")
+        elif len(matches) == 0:
+            print("    [-] No public methods returning Bitmap and taking Context were found.")
+
 
         # Stream Loader (A07)
         stream_regex = r"(\.method.*? \w+\(L[^;]+;Z\)Ljava\/io\/InputStream;)([\s\S]*?\.registers \d+)"
@@ -107,24 +99,21 @@ def _patch_newsletter_launcher(root_dir):
         
         injection = "\n    return-void"
         
-        # Regex משופר: [\s\S]*? תופס כל תו (כולל ירידות שורה) עד לרגיסטרים
-        launcher_regex = r"(\.method.*? \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;.*?\)V)([\s\S]*?\.registers \d+)"
+        # Regex V8: מחפש כל מתודה שמקבלת (בסדר הזה) Context ו-Uri, ומחזירה void
+        launcher_regex = r"(\.method[\s\S]*?\(Landroid\/content\/Context;Landroid\/net\/Uri;[\s\S]*?\)V)([\s\S]*?\.registers \d+)"
         
-        # הדפסת מה נמצא
         matches = list(re.finditer(launcher_regex, content))
-        print(f"    [*] Found {len(matches)} launcher entry points.")
+        print(f"    [*] Found {len(matches)} launcher entry points via robust scan.")
         
-        for match in matches:
-            clean_name = match.group(1).split('(')[0].strip()
-            print(f"    [+] BLOCKING: '{clean_name}'")
-
         if matches:
+            for match in matches:
+                clean_name = re.search(r'\s(\S+)\(', match.group(1)).group(1)
+                print(f"    [+] BLOCKING: '{clean_name}'")
+
             content, count = re.subn(launcher_regex, r"\1\2" + injection, content)
             print(f"    [+] Applied patches: {count}")
         else:
-            print("    [-] No matching methods found. Dumping snippet for debug:")
-            # הדפסת 500 תווים ראשונים מהקובץ כדי להבין מה קורה
-            print(content[:500])
+            print("    [-] No matching methods found.")
 
         with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
         return True
