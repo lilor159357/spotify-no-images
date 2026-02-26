@@ -2,7 +2,7 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v11 - TAB FIX)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v12 - FINAL TAB FIX)...")
     
     # ביצוע הפאצ'ים
     photos = _patch_profile_photos(decompiled_dir)
@@ -93,7 +93,7 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת טאב העדכונים (Home Tabs) - התיקון הסופי v11
+# 3. הסרת טאב העדכונים (Home Tabs) - התיקון הסופי v12
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -107,8 +107,8 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # שימוש ב-re.DOTALL יחד עם .*? תופס את שורות ה- .line XX שיש בקובץ בבטחה.
-        updates_regex = r"(const/16[vp]\d+, 0x12c.*?move-result-object [vp]\d+\s+)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+        # תוקן: הוסף רווח אחרי ה-const/16
+        updates_regex = r"(const/16 [vp]\d+, 0x12c.*?move-result-object [vp]\d+\s+)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
         
         if re.search(updates_regex, content, re.DOTALL):
             content = re.sub(updates_regex, r"\g<1># \2", content, count=1, flags=re.DOTALL)
