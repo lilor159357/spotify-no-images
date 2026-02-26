@@ -2,7 +2,7 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v10 - FINAL)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v11 - TAB FIX)...")
     
     # ביצוע הפאצ'ים
     photos = _patch_profile_photos(decompiled_dir)
@@ -10,16 +10,13 @@ def patch(decompiled_dir: str) -> bool:
     tabs = _patch_home_tabs(decompiled_dir)
     spi = _patch_secure_pending_intent(decompiled_dir)
 
-    results = [photos, newsletter, tabs, spi]
+    results =[photos, newsletter, tabs, spi]
     
-    # בדיקת הצלחה: הפעם נוודא שכל פאצ'ר באמת מצא משהו
-    # (חוץ מ-SPI שהוא אופציונלי)
     if all(results):
         print("\n[SUCCESS] All patches were applied successfully!")
         return True
     else:
         print("\n[FAILURE] One or more critical patches failed. Check logs.")
-        # נחזיר False כדי שה-Action ייכשל ונדע שיש בעיה
         return False
 
 # ---------------------------------------------------------
@@ -38,14 +35,11 @@ def _patch_profile_photos(root_dir):
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         original_content = content
         
-        # תמיכה גם ב-locals וגם ב-registers
         declaration_pattern = r"(\s+(?:\.locals|\.registers) \d+)"
 
-        # A04: Public Bitmap decoder
         bitmap_regex = r"(\.method public final \w+\(Landroid\/content\/Context;L[^;]+;Ljava\/lang\/String;FIJZZ\)Landroid\/graphics\/Bitmap;)" + declaration_pattern
         content = re.sub(bitmap_regex, r"\1\2\n    const/4 v0, 0x0\n    return-object v0", content)
 
-        # A07: Stream loader
         stream_regex = r"(\.method public final \w+\(L[^;]+;Z\)Ljava\/io\/InputStream;)" + declaration_pattern
         content = re.sub(stream_regex, r"\1\2\n    const/4 v0, 0x0\n    return-object v0", content)
         
@@ -80,11 +74,9 @@ def _patch_newsletter_launcher(root_dir):
         injection = "\n    return-void"
         declaration_pattern = r"(\s+(?:\.locals|\.registers) \d+)"
         
-        # A01: (Context, Uri) -> Void
         entry_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;\)V)" + declaration_pattern
         content = re.sub(entry_regex, r"\1\2" + injection, content)
 
-        # A02: (Context, Uri, ...) -> Void
         main_regex = r"(\.method public final \w+\(Landroid\/content\/Context;Landroid\/net\/Uri;L[^;]+;Ljava\/lang\/Integer;Ljava\/lang\/Long;Ljava\/lang\/String;IJ\)V)" + declaration_pattern
         content = re.sub(main_regex, r"\1\2" + injection, content)
 
@@ -101,7 +93,7 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת טאב העדכונים (Home Tabs) - התיקון הסופי
+# 3. הסרת טאב העדכונים (Home Tabs) - התיקון הסופי v11
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -115,14 +107,11 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # Regex ממוקד שתופס את כל הבלוק של הוספת 0x12c
-        # קבוצה 1: כל מה שלפני פקודת ה-add
-        # קבוצה 2: פקודת ה-add עצמה
-        updates_regex = r"((?:const/16 [vp]\d+, 0x12c\s+)(?:invoke-static \{[vp]\d+\}, Ljava/lang/Integer;->valueOf\(I\)Ljava/lang/Integer;\s+)(?:move-result-object [vp]\d+\s+))(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+        # שימוש ב-re.DOTALL יחד עם .*? תופס את שורות ה- .line XX שיש בקובץ בבטחה.
+        updates_regex = r"(const/16[vp]\d+, 0x12c.*?move-result-object [vp]\d+\s+)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
         
-        if re.search(updates_regex, content):
-            # הפיכת פקודת ה-add להערה
-            content = re.sub(updates_regex, r"\g<1># \2", content, count=1)
+        if re.search(updates_regex, content, re.DOTALL):
+            content = re.sub(updates_regex, r"\g<1># \2", content, count=1, flags=re.DOTALL)
             print("    [+] Home Tabs: 'Updates' tab REMOVED from list.")
             with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
             return True
@@ -158,7 +147,7 @@ def _patch_secure_pending_intent(root_dir):
         else:
             print("    [-] Pattern not found.")
         
-        return True # תמיד מחזיר הצלחה כי זה לא קריטי
+        return True 
 
     except Exception as e:
         print(f"    [-] Error: {e}")
