@@ -1,3 +1,4 @@
+File: .github/workflows/apk_patcher.yml
 name: Patch and Sign APKs
 
 on:
@@ -11,9 +12,6 @@ on:
         default: ''
 
 jobs:
-  # ──────────────────────────────────────────────
-  # Job 1: Discover which apps are registered
-  # ──────────────────────────────────────────────
   discover:
     runs-on: ubuntu-latest
     outputs:
@@ -25,19 +23,14 @@ jobs:
       - name: Find registered apps
         id: find
         run: |
-          if [ -n "${{ github.event.inputs.app_id }}" ]; then
-            # Manual trigger for specific app
+          if[ -n "${{ github.event.inputs.app_id }}" ]; then
             APPS='["${{ github.event.inputs.app_id }}"]'
           else
-            # Auto-discover all apps
             APPS=$(ls apps/*/app.json 2>/dev/null | xargs -I{} dirname {} | xargs -I{} basename {} | jq -R -s -c 'split("\n") | map(select(length > 0))')
           fi
           echo "apps=$APPS" >> $GITHUB_OUTPUT
           echo "Discovered apps: $APPS"
 
-  # ──────────────────────────────────────────────
-  # Job 2: Build each app in parallel
-  # ──────────────────────────────────────────────
   build:
     needs: discover
     runs-on: ubuntu-latest
@@ -46,7 +39,7 @@ jobs:
     strategy:
       matrix:
         app: ${{ fromJson(needs.discover.outputs.apps) }}
-      fail-fast: false  # Don't fail all apps if one fails
+      fail-fast: false
 
     steps:
       - name: Checkout Repository
@@ -58,7 +51,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # שוורצבלאט דורש פייתון עדכני (3.11 ומעלה)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -74,12 +66,10 @@ jobs:
           pip install -r requirements.txt
           npm install -g apk-mitm
 
-      # ── שלב 1: הורדת ה-APK המקורי ע"י המערכת שלך ──
       - name: Check for updates & download
         id: check_version
         run: python run.py --app ${{ matrix.app }} --step download
 
-      # ── הורדת כלים (Apktool / UberSigner) ──
       - name: Download Latest Apktool & UberSigner
         if: steps.check_version.outputs.update_needed == 'true'
         run: |
@@ -88,11 +78,9 @@ jobs:
           UBER_URL=$(curl -s https://api.github.com/repos/patrickfav/uber-apk-signer/releases/latest | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url')
           wget -q "$UBER_URL" -O ubersigner.jar
 
-      # ── שלב 2: הפעלת הפאצ'ר של שוורצבלאט (רץ רק על וואטסאפ) ──
       - name: Apply WhatsApp Patcher (Schwartzblat)
         if: steps.check_version.outputs.update_needed == 'true' && matrix.app == 'whatsapp'
         run: |
-          # ── תיקון SSH ל-HTTPS (החלק החדש שפותר את השגיאה) ──
           git config --global url."https://github.com/".insteadOf "git@github.com:"
 
           echo "[*] Cloning WhatsAppPatcher with submodules..."
@@ -101,12 +89,26 @@ jobs:
 
           echo "[*] Installing Patcher Dependencies..."
           pip install -r requirements.txt
-          
-          # התקנת stitch-test בצורה מפורשת מ-TestPyPI
           pip install stitch-test --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple
 
+          echo "[*] Patching Androguard Bug in WhatsAppPatcher..."
+          # סקריפט שעוקף את הניסיון לקרוא את קובץ המשאבים עם ARSCParser שקורס
+          cat << 'EOF' > patch_androguard.py
+import os
+file_path = 'artifactory_generator/firebase_params.py'
+with open(file_path, 'r') as f:
+    content = f.read()
+
+content = content.replace('resources = ARSCParser(resources_path.read_bytes())', 'pass')
+content = content.replace("_, original_google_api_key = resources.get_string(package_name, 'google_api_key')", 'pass')
+content = content.replace("artifacts['ORIGINAL_API_KEY'] = original_google_api_key", "artifacts['ORIGINAL_API_KEY'] = 'dummy_key'")
+
+with open(file_path, 'w') as f:
+    f.write(content)
+EOF
+          python3 patch_androguard.py
+
           echo "[*] Running Patcher on ../latest.apk ..."
-          # מריצים עם --no-sign כי אנחנו חותמים בסוף התהליך שלך
           python3 main.py -p ../latest.apk -o ../latest_patched.apk --no-sign
           
           cd ..
@@ -118,8 +120,6 @@ jobs:
             exit 1
           fi
 
-      # ── שלב 3: המשך התהליך הרגיל (Decompile -> Kosher Patch -> Repack -> Sign) ──
-      
       - name: Decode APK
         if: steps.check_version.outputs.update_needed == 'true'
         run: java -jar apktool.jar d -f latest.apk -o build_output
@@ -151,7 +151,6 @@ jobs:
           mkdir -p release
           mv patched_unsigned-aligned-signed.apk release/${{ matrix.app }}-patched-${{ steps.check_version.outputs.new_version }}.apk
 
-      # ── Status tracking ──
       - name: Update status on success
         if: steps.check_version.outputs.update_needed == 'true' && success()
         run: |
@@ -173,7 +172,6 @@ jobs:
           update_status('apps/${{ matrix.app }}/status.json', success=False, failed_version='$FAILED_VER', error_message='Patching or building failed')
           "
 
-      # ── Commit changes (Fixed Git Logic) ──
       - name: Commit version & status updates
         if: always()
         run: |
@@ -182,11 +180,9 @@ jobs:
           git add apps/${{ matrix.app }}/version.txt apps/${{ matrix.app }}/status.json
           git commit -m "[${{ matrix.app }}] Update to ${{ steps.check_version.outputs.new_version || 'status update' }}" || echo "No changes to commit"
           
-          # Fix: Pull with rebase strategy favoring our changes, then push HEAD to main
           git pull origin main --rebase -X theirs
           git push origin HEAD:main
 
-      # ── Tag & Release ──
       - name: Create tag
         if: steps.check_version.outputs.update_needed == 'true' && success()
         run: |
@@ -205,9 +201,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # 
-  # Job 3: Update apps.json listing
-  # 
   update-listing:
     needs: build
     runs-on: ubuntu-latest
@@ -238,6 +231,5 @@ jobs:
           git add apps.json
           git commit -m "update apps.json listing [skip ci]" || echo "No changes to commit"
           
-          # Fix: Pull with rebase strategy favoring our changes, then push HEAD to main
           git pull origin main --rebase -X theirs
           git push origin HEAD:main
