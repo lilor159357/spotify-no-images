@@ -2,7 +2,7 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v12 - FINAL TAB FIX)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Precision Sniper Mode v13 - 0x12c TARGET)...")
     
     # ביצוע הפאצ'ים
     photos = _patch_profile_photos(decompiled_dir)
@@ -93,7 +93,7 @@ def _patch_newsletter_launcher(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 3. הסרת טאב העדכונים (Home Tabs) - FIXED REGEX
+# 3. הסרת טאב העדכונים (Home Tabs) - Target 0x12c (Updates)
 # ---------------------------------------------------------
 def _patch_home_tabs(root_dir):
     anchor = "Tried to set badge for invalid tab id"
@@ -107,21 +107,20 @@ def _patch_home_tabs(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # FIX: Regex עמיד יותר שלא מסתמך על רווחים בלבד, אלא תופס הכל עד ה-add
-        # מחפש את טעינת המספר 300 (0x12c), ותופס כל קוד שבא אחריו עד להוספה לרשימה
-        updates_regex = r"(const/16 [vp]\d+, 0x12c.*?)(invoke-virtual \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
+        # מכוונים ספציפית ל-0x12c (עדכונים)
+        # 1. מוצאים את השורה const/16 v0, 0x12c
+        # 2. לוקחים את כל מה שבאמצע (.*?) בצורה "קמצנית" (כדי לא לדלג ל-add הבא)
+        # 3. תופסים את ה-add שבא מיד אחריו
+        updates_regex = r"(const/16 [vp]\d+, 0x12c.*?)((?:invoke-virtual|invoke-interface) \{[vp]\d+, [vp]\d+\}, Ljava/util/AbstractCollection;->add\(Ljava/lang/Object;\)Z)"
         
+        # משתמשים ב-count=1 כדי לוודא שאנחנו נוגעים רק במופע הראשון שנמצא (שזה הבלוק של 0x12c)
         if re.search(updates_regex, content, re.DOTALL):
-            # הופך את שורת ההוספה (add) להערה (#) ובכך מנטרל את הוספת הטאב
             content = re.sub(updates_regex, r"\1# \2", content, count=1, flags=re.DOTALL)
-            print("    [+] Home Tabs: 'Updates' tab REMOVED from list.")
+            print("    [+] Home Tabs: 'Updates' tab (0x12c) REMOVED from list.")
             with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
             return True
         else:
-            print("    [-] Home Tabs: Exact removal pattern not found.")
-            # Debug output for analysis
-            if "0x12c" in content and "AbstractCollection;->add" in content:
-                 print("        [i] Debug: Found components but regex failed. Check manually.")
+            print("    [-] Home Tabs: Exact removal pattern for 0x12c not found.")
             return False
 
     except Exception as e:
