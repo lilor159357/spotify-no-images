@@ -79,16 +79,13 @@ def _resolve_repository() -> tuple[str, str]:
 
 
 def _next_smali_classes_dir(decompiled_dir: str) -> str:
-    # Start at 1 if 'smali' exists (standard first dex), else 0.
-    max_dex = 1 if os.path.isdir(os.path.join(decompiled_dir, "smali")) else 0
-    
-    for item in os.listdir(decompiled_dir):
-        if not item.startswith("smali_classes"):
-            continue
-        suffix = item.replace("smali_classes", "")
-        if suffix.isdigit():
-            max_dex = max(max_dex, int(suffix))
-    return f"smali_classes{max_dex + 1}"
+    # מחפש את המספר העוקב הראשון שפנוי כדי למנוע שבירת רצף טעינה באנדרואיד
+    idx = 2
+    while True:
+        candidate = f"smali_classes{idx}"
+        if not os.path.isdir(os.path.join(decompiled_dir, candidate)):
+            return candidate
+        idx += 1
 
 
 def _copy_payload_and_replace_placeholders(
