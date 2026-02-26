@@ -99,7 +99,14 @@ jobs:
       - name: Apply patch
         if: steps.check_version.outputs.update_needed == 'true'
         run: python run.py --app ${{ matrix.app }} --step patch
-
+        
+      - name: Upload Forensics Data
+        if: always() # חשוב: הרץ את הצעד הזה גם אם צעדים אחרים נכשלים
+        uses: actions/upload-artifact@v4
+        with:
+          name: forensics-data # שם ה-artifact שיופיע
+          path: build_output/forensics_output/
+          
       - name: Repack APK
         if: steps.check_version.outputs.update_needed == 'true'
         run: java -jar apktool.jar b build_output -o patched_unsigned.apk
