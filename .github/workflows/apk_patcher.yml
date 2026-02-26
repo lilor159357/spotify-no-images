@@ -92,7 +92,6 @@ jobs:
       - name: Apply WhatsApp Patcher (Schwartzblat)
         if: steps.check_version.outputs.update_needed == 'true' && matrix.app == 'whatsapp'
         run: |
-          # ── תיקון SSH ל-HTTPS (החלק החדש שפותר את השגיאה) ──
           git config --global url."https://github.com/".insteadOf "git@github.com:"
 
           echo "[*] Cloning WhatsAppPatcher with submodules..."
@@ -101,16 +100,24 @@ jobs:
 
           echo "[*] Installing Patcher Dependencies..."
           pip install -r requirements.txt
-          
-          # התקנת stitch-test בצורה מפורשת מ-TestPyPI
           pip install stitch-test --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple
 
+          echo "[*] Bypassing Androguard crash in WhatsAppPatcher..."
+          python3 -c "
+          import os
+          path = 'artifactory_generator/firebase_params.py'
+          text = open(path).read()
+          text = text.replace('resources = ARSCParser(resources_path.read_bytes())', 'pass')
+          text = text.replace(\"_, original_google_api_key = resources.get_string(package_name, 'google_api_key')\", 'pass')
+          text = text.replace(\"artifacts['ORIGINAL_API_KEY'] = original_google_api_key\", \"artifacts['ORIGINAL_API_KEY'] = 'dummy'\")
+          open(path, 'w').write(text)
+          "
+
           echo "[*] Running Patcher on ../latest.apk ..."
-          # מריצים עם --no-sign כי אנחנו חותמים בסוף התהליך שלך
           python3 main.py -p ../latest.apk -o ../latest_patched.apk --no-sign
           
           cd ..
-          if [ -f "latest_patched.apk" ]; then
+          if[ -f "latest_patched.apk" ]; then
             echo "[+] WhatsApp Patch successful. Replacing original APK."
             mv latest_patched.apk latest.apk
           else
