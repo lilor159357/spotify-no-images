@@ -9,11 +9,15 @@ def patch(decompiled_dir: str) -> bool:
     newsletter = _patch_newsletter_launcher(decompiled_dir)
     tabs = _patch_home_tabs(decompiled_dir)
     spi = _patch_secure_pending_intent(decompiled_dir)
+    
+    # +++ כאן קוראים לפונקציית השכפול שהוספנו +++
+    clone = _clone_whatsapp(decompiled_dir)
 
-    results =[photos, newsletter, tabs, spi]
+    # +++ חובה להוסיף את clone לרשימת התוצאות כדי שהמערכת תדע אם זה הצליח +++
+    results = [photos, newsletter, tabs, spi, clone]
     
     if all(results):
-        print("\n[SUCCESS] All patches were applied successfully!")
+        print("\n[SUCCESS] All patches and clone were applied successfully!")
         return True
     else:
         print("\n[FAILURE] One or more critical patches failed. Check logs.")
