@@ -198,8 +198,10 @@ jobs:
         if: steps.check_version.outputs.update_needed == 'true' && success()
         run: |
           git pull origin main --rebase -X theirs
-          git tag ${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
-          git push origin --tags
+          # מוסיפים -f כדי לדרוס את התגית מקומית במידה והיא קיימת
+          git tag -f ${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
+          # דוחפים ספציפית את התגית הזו בכוח לשרת
+          git push -f origin refs/tags/${{ matrix.app }}-v${{ steps.check_version.outputs.new_version }}
 
       - name: Create GitHub Release
         if: steps.check_version.outputs.update_needed == 'true' && success()
