@@ -6,8 +6,7 @@
   "description": "WhatsApp with kosher patch applied.",
   "description_he": "וואטסאפ מסונן: חסימת תמונות פרופיל, ערוצים ועוד.",
   "icon_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg",
-  "source": "github",
-  "repo": "Schwartzblat/WhatsAppPatcher",
+  "source": "aptoide",
   "skip_mitm": true,
   "version_file": "apps/whatsapp/version.txt",
   "status_file": "apps/whatsapp/status.json"
