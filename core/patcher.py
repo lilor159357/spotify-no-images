@@ -7,7 +7,6 @@ import importlib.util
 import os
 import sys
 
-from core.universal_updater import inject_universal_updater
 
 
 def run_patch(app_id: str, decompiled_dir: str) -> bool:
@@ -54,12 +53,7 @@ def run_patch(app_id: str, decompiled_dir: str) -> bool:
         print(f"[-] [{app_id}] Patch returned failure.")
         return False
 
-    if app_id != "spotify":
-        print(f"[*] [{app_id}] Applying updater injection...")
-        updater_success = inject_universal_updater(decompiled_dir=decompiled_dir, app_id=app_id)
-        if not updater_success:
-            print(f"[-] [{app_id}] Updater injection failed.")
-            return False
+   
 
     print(f"[+] [{app_id}] Patch completed successfully!")
 
