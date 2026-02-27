@@ -26,7 +26,7 @@ from core.utils import (
 from core.downloader import download_app
 from core.patcher import run_patch
 from core.cloner import run_clone
-
+from core.universal_updater import inject_universal_updater
 
 def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
     """
@@ -106,6 +106,13 @@ def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
                 return False
         
         # If we are here, patch was successful.
+        if app_id != "spotify":
+            print(f"[*] [{app_id}] Applying universal updater injection...")
+            updater_success = inject_universal_updater(decompiled_dir, app_id)
+            if not updater_success:
+                 # ... (עדכון סטטוס שגיאה) ...
+                print(f"[-] [{app_id}] Updater injection failed.")
+                return False
         update_status(config["status_file"], success=True)
         
         # If running locally in 'all' mode, update the version file now.
