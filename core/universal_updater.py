@@ -260,57 +260,39 @@ def inject_universal_updater(
     payload_dir: str | None = None,
 ) -> bool:
     """
-    Inject updater payload and startup hook into an APK decompile.
+    Inject updater payload. 
+    Running AFTER cloning ensures package names are final.
     """
     manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
-    if not os.path.isfile(manifest_path):
-        print("[-] CRITICAL: AndroidManifest.xml not found. Cannot inject updater.")
-        return False
-
-    # 1. משיכת שם החבילה המקורי
+    
+    # 1. קריאת שם החבילה (עכשיו זה כבר יהיה השם החדש/המשובט!)
     package_name = _get_package_name(manifest_path)
     if not package_name:
-        print("[-] CRITICAL: Failed to get package name. Aborting updater injection.")
         return False
 
-    # ---------------------------------------------------------
-    # תיקון: טעינת קונפיגורציה ובדיקה אם יש שינוי שם חבילה (Clone)
-    # ---------------------------------------------------------
+    # 2. קביעת מסך היעד (חובה להשתמש ב-app.json עבור אפליקציות משובטות)
     try:
         app_config = load_app_config(app_id)
-        
-        # בדיקה 1: האם הוגדר מסך יעד ידני (מהתיקון הקודם)
         main_activity_smali = app_config.get("updater_target_smali")
-        if not main_activity_smali:
-            main_activity_smali = _get_main_activity_smali_path(manifest_path)
-            
-        # בדיקה 2: האם מוגדר שיבוט (Clone)? אם כן, נשתמש בשם החבילה החדש
-        # כדי למנוע התנגשות ב-FileProvider
-        if "clone_config" in app_config:
-            new_pkg = app_config["clone_config"].get("new_pkg")
-            if new_pkg:
-                print(f"[i] Clone detected! Using new package name for updater: {new_pkg}")
-                package_name = new_pkg
-
-    except Exception as e:
-        print(f"[!] Warning: Could not load app config: {e}")
-        main_activity_smali = _get_main_activity_smali_path(manifest_path)
-    # ---------------------------------------------------------
+    except:
+        main_activity_smali = None
 
     if not main_activity_smali:
-        print("[-] CRITICAL: Could not detect Main Activity automatically.")
+        # ניסיון זיהוי אוטומטי (יעבוד רק לאפליקציות שלא עברו שינוי מבנה תיקיות)
+        main_activity_smali = _get_main_activity_smali_path(manifest_path)
+
+    if not main_activity_smali:
+        print("[-] CRITICAL: Could not detect target Activity. Please set 'updater_target_smali' in app.json")
         return False
 
-    repo_owner, repo_name = _resolve_repository()
-    print(f"[i] Detected Repo: {repo_owner}/{repo_name}")
-    print(f"[i] App ID: {app_id}")
-    print(f"[i] Package Name: {package_name}")
-    print(f"[i] Main Activity: {main_activity_smali}")
+    print(f"[i] Injecting into package: {package_name}")
+    print(f"[i] Target Activity: {main_activity_smali}")
 
+    # 3. הגדרות רגילות (בלי שום לוגיקה מיוחדת לשיבוט!)
+    repo_owner, repo_name = _resolve_repository()
     provider_authority = f"{package_name}.provider"
-    version_txt_url = (
-        f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/refs/heads/main/apps/{app_id}/version.txt"
-    )
+    
+    version_txt_url = f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/refs/heads/main/apps/{app_id}/version.txt"
     download_prefix = f"https://github.com/{repo_owner}/{repo_name}/releases/download/{app_id}-v"
     download_middle = f"/{app_id}-patched-"
 
@@ -318,17 +300,10 @@ def inject_universal_updater(
         repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         payload_dir = os.path.join(repo_root, "core", "updater_payload")
 
-    if not os.path.isdir(payload_dir):
-        print(f"[-] CRITICAL: Updater payload directory not found: {payload_dir}")
-        return False
-
+    # ביצוע ההעתקה וההזרקה
     if not _copy_payload_and_replace_placeholders(
-        decompiled_dir=decompiled_dir,
-        payload_dir=payload_dir,
-        provider_authority=provider_authority,
-        version_txt_url=version_txt_url,
-        download_prefix=download_prefix,
-        download_middle=download_middle,
+        decompiled_dir, payload_dir, provider_authority,
+        version_txt_url, download_prefix, download_middle
     ):
         return False
 
@@ -337,7 +312,7 @@ def inject_universal_updater(
 
     main_activity_file = _find_activity_file(decompiled_dir, main_activity_smali)
     if not main_activity_file:
-        print(f"[-] Error: Failed to locate {main_activity_smali}.")
+        print(f"[-] Error: Failed to locate {main_activity_smali}")
         return False
 
     if not _inject_updater_call(main_activity_file):
