@@ -267,25 +267,36 @@ def inject_universal_updater(
         print("[-] CRITICAL: AndroidManifest.xml not found. Cannot inject updater.")
         return False
 
+    # 1. משיכת שם החבילה המקורי
     package_name = _get_package_name(manifest_path)
     if not package_name:
         print("[-] CRITICAL: Failed to get package name. Aborting updater injection.")
         return False
+
+    # ---------------------------------------------------------
+    # תיקון: טעינת קונפיגורציה ובדיקה אם יש שינוי שם חבילה (Clone)
+    # ---------------------------------------------------------
     try:
         app_config = load_app_config(app_id)
-        # נחפש אם הוגדר מפתח 'updater_target_smali'
-        main_activity_smali = app_config.get("updater_target_smali")
         
-        if main_activity_smali:
-            print(f"[i] Using custom target from app.json: {main_activity_smali}")
-        else:
-            # אם לא הוגדר, נשתמש באוטומציה הרגילה
+        # בדיקה 1: האם הוגדר מסך יעד ידני (מהתיקון הקודם)
+        main_activity_smali = app_config.get("updater_target_smali")
+        if not main_activity_smali:
             main_activity_smali = _get_main_activity_smali_path(manifest_path)
             
+        # בדיקה 2: האם מוגדר שיבוט (Clone)? אם כן, נשתמש בשם החבילה החדש
+        # כדי למנוע התנגשות ב-FileProvider
+        if "clone_config" in app_config:
+            new_pkg = app_config["clone_config"].get("new_pkg")
+            if new_pkg:
+                print(f"[i] Clone detected! Using new package name for updater: {new_pkg}")
+                package_name = new_pkg
+
     except Exception as e:
         print(f"[!] Warning: Could not load app config: {e}")
         main_activity_smali = _get_main_activity_smali_path(manifest_path)
-        
+    # ---------------------------------------------------------
+
     if not main_activity_smali:
         print("[-] CRITICAL: Could not detect Main Activity automatically.")
         return False
