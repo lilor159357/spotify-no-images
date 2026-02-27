@@ -149,7 +149,7 @@ def _patch_home_tabs(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 4. תיקון SecurePendingIntent (אופציונלי)
+# 4. תיקון SecurePendingIntent (Precision Surgical Mode)
 # ---------------------------------------------------------
 def _patch_secure_pending_intent(root_dir):
     anchor = "Please set reporter for SecurePendingIntent library"
@@ -163,21 +163,43 @@ def _patch_secure_pending_intent(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        pattern = r"(if-nez [vp]\d+, (:cond_\w+))(\s+.*?)(const-string [vp]\d+, \"Please set reporter)"
+        # הביטוי הזה תופס:
+        # 1. את ה-if-nez והלייבל לקפיצה
+        # 2. את התוכן שבאמצע (Non-greedy)
+        # 3. את שורת השגיאה
+        pattern = re.compile(r"(if-nez [vp]\d+, (:cond_\w+))([\s\S]+?)(const-string [vp]\d+, \"Please set reporter)", re.DOTALL)
+
+        def replacement_logic(match):
+            condition_line = match.group(1) # if-nez v0, :cond_24
+            label_target = match.group(2)   # :cond_24
+            middle_code = match.group(3)    # הקוד שבאמצע
+            error_line = match.group(4)     # const-string...
+
+            # בדיקת בטיחות: האם יש קוד לוגי (פקודות או לייבלים) באמצע?
+            # אנחנו מחפשים רק מצב שבו אם הבדיקה נכשלת -> נופלים *מיד* לשגיאה.
+            # אם יש באמצע ":" (סימן ללייבל) או "return", זה לא המקום שאנחנו רוצים לערוך.
+            if ":" in middle_code or "return" in middle_code or "goto" in middle_code:
+                print("    [i] Skipping irrelevant check (Trap detected).")
+                return match.group(0) # מחזיר את הקוד המקורי בלי לגעת
+            
+            # אם הגענו לפה, זה המקום הנכון! (רק שורות .line או רווחים באמצע)
+            print(f"    [+] Surgical Patch: Changing '{condition_line}' -> 'goto {label_target}'")
+            return f"goto {label_target}{middle_code}{error_line}"
+
+        # מריצים את ההחלפה
+        new_content, num_subs = pattern.subn(replacement_logic, content)
         
-        if re.search(pattern, content, re.DOTALL):
-            content = re.sub(pattern, r"goto \2\3\4", content, count=1, flags=re.DOTALL)
-            print("    [+] Check bypassed (if-nez -> goto).")
-            with open(target_file, 'w', encoding='utf-8') as f: f.write(content)
+        if new_content != content:
+            with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content)
+            print("    [SUCCESS] SecurePendingIntent check bypassed successfully.")
+            return True
         else:
-            print("    [-] Pattern not found.")
-        
-        return True 
+            print("    [-] Target pattern not found or already patched.")
+            return False
 
     except Exception as e:
         print(f"    [-] Error: {e}")
         return False
-
 # ---------------------------------------------------------
 # פונקציות עזר
 # ---------------------------------------------------------
