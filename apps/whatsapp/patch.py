@@ -149,7 +149,7 @@ def _patch_home_tabs(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 4. תיקון SecurePendingIntent (Precision Surgical Mode)
+# 4. תיקון SecurePendingIntent (Correct Logic - No False Positives)
 # ---------------------------------------------------------
 def _patch_secure_pending_intent(root_dir):
     anchor = "Please set reporter for SecurePendingIntent library"
@@ -163,10 +163,7 @@ def _patch_secure_pending_intent(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # הביטוי הזה תופס:
-        # 1. את ה-if-nez והלייבל לקפיצה
-        # 2. את התוכן שבאמצע (Non-greedy)
-        # 3. את שורת השגיאה
+        # התבנית תופסת את ה-if, הקוד שבאמצע, ושורת השגיאה
         pattern = re.compile(r"(if-nez [vp]\d+, (:cond_\w+))([\s\S]+?)(const-string [vp]\d+, \"Please set reporter)", re.DOTALL)
 
         def replacement_logic(match):
@@ -175,15 +172,20 @@ def _patch_secure_pending_intent(root_dir):
             middle_code = match.group(3)    # הקוד שבאמצע
             error_line = match.group(4)     # const-string...
 
-            # בדיקת בטיחות: האם יש קוד לוגי (פקודות או לייבלים) באמצע?
-            # אנחנו מחפשים רק מצב שבו אם הבדיקה נכשלת -> נופלים *מיד* לשגיאה.
-            # אם יש באמצע ":" (סימן ללייבל) או "return", זה לא המקום שאנחנו רוצים לערוך.
-            if ":" in middle_code or "return" in middle_code or "goto" in middle_code:
-                print("    [i] Skipping irrelevant check (Trap detected).")
-                return match.group(0) # מחזיר את הקוד המקורי בלי לגעת
+            # בדיקה חכמה וספציפית:
+            # 1. האם יש return באמצע? (סימן ברור למלכודת)
+            # 2. האם יש הגדרת תווית (:cond_...) בתחילת שורה? (סימן שהקפיצה היא לפה)
+            # אנחנו משתמשים ב-re.search כדי לוודא שזה לייבל אמיתי ולא סתם ':' בתוך שם של מתודה
+            is_trap = "return" in middle_code or "goto" in middle_code or re.search(r'^\s*:[a-zA-Z0-9_]+', middle_code, re.MULTILINE)
             
-            # אם הגענו לפה, זה המקום הנכון! (רק שורות .line או רווחים באמצע)
-            print(f"    [+] Surgical Patch: Changing '{condition_line}' -> 'goto {label_target}'")
+            if is_trap:
+                # זה המקרה של שורה 213 (יש קוד ו-return באמצע -> לא לגעת!)
+                print(f"    [i] Trap detected (Logic found inside). Skipping.")
+                return match.group(0)
+            
+            # אם הגענו לפה, הדרך נקייה (רק שורות ריקות, הערות או .line)
+            # זה המקרה של שורה 154 -> בצע החלפה!
+            print(f"    [+] Patching: Checking bypassed -> 'goto {label_target}'")
             return f"goto {label_target}{middle_code}{error_line}"
 
         # מריצים את ההחלפה
@@ -191,10 +193,10 @@ def _patch_secure_pending_intent(root_dir):
         
         if new_content != content:
             with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content)
-            print("    [SUCCESS] SecurePendingIntent check bypassed successfully.")
+            print(f"    [SUCCESS] Fixed {num_subs} checks in SecurePendingIntent.")
             return True
         else:
-            print("    [-] Target pattern not found or already patched.")
+            print("    [-] Target pattern not found (or logic prevented bad patch).")
             return False
 
     except Exception as e:
