@@ -3,6 +3,7 @@ Updater injector for decompiled APKs.
 """
 
 from __future__ import annotations
+from core.utils import load_app_config  # <--- הוסף את זה
 
 import os
 import re
@@ -270,8 +271,21 @@ def inject_universal_updater(
     if not package_name:
         print("[-] CRITICAL: Failed to get package name. Aborting updater injection.")
         return False
-
-    main_activity_smali = _get_main_activity_smali_path(manifest_path)
+    try:
+        app_config = load_app_config(app_id)
+        # נחפש אם הוגדר מפתח 'updater_target_smali'
+        main_activity_smali = app_config.get("updater_target_smali")
+        
+        if main_activity_smali:
+            print(f"[i] Using custom target from app.json: {main_activity_smali}")
+        else:
+            # אם לא הוגדר, נשתמש באוטומציה הרגילה
+            main_activity_smali = _get_main_activity_smali_path(manifest_path)
+            
+    except Exception as e:
+        print(f"[!] Warning: Could not load app config: {e}")
+        main_activity_smali = _get_main_activity_smali_path(manifest_path)
+        
     if not main_activity_smali:
         print("[-] CRITICAL: Could not detect Main Activity automatically.")
         return False
