@@ -149,7 +149,7 @@ def _patch_home_tabs(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 4. תיקון SecurePendingIntent (Correct Logic - No False Positives)
+# 4. תיקון SecurePendingIntent (עם Forensic Dump)
 # ---------------------------------------------------------
 def _patch_secure_pending_intent(root_dir):
     anchor = "Please set reporter for SecurePendingIntent library"
@@ -160,32 +160,52 @@ def _patch_secure_pending_intent(root_dir):
         print("    [i] File not found (optional, skipping).")
         return True 
 
+    # --- FORENSICS: Create output dir ---
+    forensics_dir = os.path.join(root_dir, "forensics_output")
+    os.makedirs(forensics_dir, exist_ok=True)
+    
+    # Save the file name for later dumping
+    filename = os.path.basename(target_file)
+    dump_path = os.path.join(forensics_dir, f"DEBUG_{filename}")
+
     try:
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
         
-        # התבנית תופסת את ה-if, הקוד שבאמצע, ושורת השגיאה
+        # --- FORENSICS: Dump original file ---
+        with open(dump_path, 'w', encoding='utf-8') as f: f.write(content)
+        print(f"    [DUMP] Original file dumped to: {dump_path}")
+
+        # התבנית תופסת:
+        # 1. if-nez והלייבל
+        # 2. שם הלייבל בנפרד
+        # 3. כל הקוד שבאמצע (Non-greedy)
+        # 4. שורת השגיאה
         pattern = re.compile(r"(if-nez [vp]\d+, (:cond_\w+))([\s\S]+?)(const-string [vp]\d+, \"Please set reporter)", re.DOTALL)
 
         def replacement_logic(match):
+            full_match = match.group(0)
             condition_line = match.group(1) # if-nez v0, :cond_24
             label_target = match.group(2)   # :cond_24
             middle_code = match.group(3)    # הקוד שבאמצע
             error_line = match.group(4)     # const-string...
 
+            # הדפסת דיבאג כדי להבין מה הסקריפט "רואה" באמצע
+            print(f"    [?] Examining block around: {condition_line}")
+            
             # בדיקה חכמה וספציפית:
-            # 1. האם יש return באמצע? (סימן ברור למלכודת)
+            # 1. האם יש return באמצע? (סימן למלכודת לוגית)
             # 2. האם יש הגדרת תווית (:cond_...) בתחילת שורה? (סימן שהקפיצה היא לפה)
-            # אנחנו משתמשים ב-re.search כדי לוודא שזה לייבל אמיתי ולא סתם ':' בתוך שם של מתודה
             is_trap = "return" in middle_code or "goto" in middle_code or re.search(r'^\s*:[a-zA-Z0-9_]+', middle_code, re.MULTILINE)
             
             if is_trap:
-                # זה המקרה של שורה 213 (יש קוד ו-return באמצע -> לא לגעת!)
-                print(f"    [i] Trap detected (Logic found inside). Skipping.")
-                return match.group(0)
+                print(f"    [i] Trap detected! logic found inside block.")
+                print(f"        --- TRAP CONTENT START ---")
+                print(f"{middle_code}")
+                print(f"        --- TRAP CONTENT END ---")
+                return match.group(0) # מחזיר את המקור בלי לגעת
             
-            # אם הגענו לפה, הדרך נקייה (רק שורות ריקות, הערות או .line)
-            # זה המקרה של שורה 154 -> בצע החלפה!
-            print(f"    [+] Patching: Checking bypassed -> 'goto {label_target}'")
+            # אם הגענו לפה, הדרך נקייה
+            print(f"    [+] CLEAN PATH FOUND! Patching: '{condition_line}' -> 'goto {label_target}'")
             return f"goto {label_target}{middle_code}{error_line}"
 
         # מריצים את ההחלפה
@@ -196,7 +216,7 @@ def _patch_secure_pending_intent(root_dir):
             print(f"    [SUCCESS] Fixed {num_subs} checks in SecurePendingIntent.")
             return True
         else:
-            print("    [-] Target pattern not found (or logic prevented bad patch).")
+            print("    [-] Target pattern not found (or logic prevented bad patch). Check logs above.")
             return False
 
     except Exception as e:
