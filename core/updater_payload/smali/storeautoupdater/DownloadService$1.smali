@@ -156,7 +156,7 @@
 
     invoke-direct {v14, v6}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
 
-    const/16 v7, 0x1000
+    const v7, 0x10000
 
     new-array v13, v7, [B
 
