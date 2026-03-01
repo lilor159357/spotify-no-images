@@ -9,9 +9,9 @@ def patch(decompiled_dir: str) -> bool:
     newsletter = _patch_newsletter_launcher(decompiled_dir)
     tabs = _patch_home_tabs(decompiled_dir)
     spi = _patch_secure_pending_intent(decompiled_dir)
+    browser = _patch_force_external_browser(decompiled_dir)
 
-
-    results = [photos, newsletter, tabs, spi]
+    results = [photos, newsletter, tabs, spi, browser]
     
     if all(results):
         print("\n[SUCCESS] All patches and clone were applied successfully!")
