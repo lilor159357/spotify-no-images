@@ -181,6 +181,105 @@ def _patch_secure_pending_intent(root_dir):
         print(f"    [-] Error: {e}")
         return False
 # ---------------------------------------------------------
+# 5. חסימת דפדפן פנימי - גרסת "טרמפולינה" (Trampoline)
+# ---------------------------------------------------------
+def _patch_force_external_browser(root_dir):
+    target_filename = "WaInAppBrowsingActivity.smali"
+    print(f"\n[5] Hijacking {target_filename} (Trampoline Mode)...")
+    
+    target_file = None
+    for root, dirs, files in os.walk(root_dir):
+        if target_filename in files:
+            target_file = os.path.join(root, target_filename)
+            break
+            
+    if not target_file:
+        print("    [-] WaInAppBrowsingActivity.smali not found. Skipping.")
+        return False
+
+    try:
+        with open(target_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # אנחנו מחפשים את ההתחלה של onCreate
+        # Regex תופס את הפונקציה מתחילתה ועד סופה
+        method_pattern = re.compile(
+            r"(\.method public onCreate\(Landroid\/os\/Bundle;\)V)(.*?)(\.end method)",
+            re.DOTALL
+        )
+
+        # זהו הקוד החדש. הוא מחליף את *כל* מה שהיה ב-onCreate המקורי.
+        # שים לב: אנחנו משתמשים ב-v0, v1, v2, v3.
+        new_smali_body = """
+    .locals 4
+
+    # 1. Must call super.onCreate to initialize the Activity context correctly
+    invoke-super {p0, p1}, LX/0Lt;->onCreate(Landroid/os/Bundle;)V
+
+    # 2. Get the URL from the Intent ("webview_url")
+    invoke-virtual {p0}, Landroid/app/Activity;->getIntent()Landroid/content/Intent;
+    move-result-object v0
+    const-string v1, "webview_url"
+    invoke-virtual {v0, v1}, Landroid/content/Intent;->getStringExtra(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v2
+
+    # If URL is null, just close
+    if-nez v2, :cond_start_browser
+    invoke-virtual {p0}, Landroid/app/Activity;->finish()V
+    return-void
+
+    :cond_start_browser
+    # 3. Prepare Intent
+    invoke-static {v2}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+    move-result-object v0
+    new-instance v1, Landroid/content/Intent;
+    const-string v3, "android.intent.action.VIEW"
+    invoke-direct {v1, v3, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
+    
+    # 4. Try to open external browser
+    :try_start_0
+    invoke-virtual {p0, v1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    # Success -> Close internal activity
+    goto :goto_finish
+
+    :catch_0
+    # 5. Exception (No browser found) -> Show Toast
+    move-exception v0
+    const/4 v0, 0x1 
+    const-string v1, "\u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d3\u05e4\u05d3\u05e4\u05df / No Browser Found" 
+    # (המחרוזת למעלה היא "לא נמצא דפדפן" ביוניקוד)
+    
+    invoke-static {p0, v1, v0}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    move-result-object v0
+    invoke-virtual {v0}, Landroid/widget/Toast;->show()V
+
+    :goto_finish
+    # 6. Kill activity immediately
+    invoke-virtual {p0}, Landroid/app/Activity;->finish()V
+    return-void
+"""
+
+        match = method_pattern.search(content)
+        if match:
+            # מחליפים את כל התוכן של onCreate בקוד החדש
+            new_content = method_pattern.sub(r"\1" + new_smali_body + r"\3", content)
+            
+            with open(target_file, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+                
+            print(f"    [+] onCreate hijacked! The internal browser is now dead code.")
+            return True
+        else:
+            print("    [-] onCreate method not found in file.")
+            return False
+
+    except Exception as e:
+        print(f"    [-] Error patching browser: {e}")
+        return False
+# ---------------------------------------------------------
 # פונקציות עזר
 # ---------------------------------------------------------
 def _find_file_by_string(root_dir, search_string):
