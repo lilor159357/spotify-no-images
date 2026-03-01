@@ -181,13 +181,14 @@ def _patch_secure_pending_intent(root_dir):
         print(f"    [-] Error: {e}")
         return False
 # ---------------------------------------------------------
-# 5. חסימת דפדפן פנימי - גרסת "טרמפולינה" (Trampoline)
+# 5. חסימת דפדפן פנימי (Hijack onCreate) - גרסה מתוקנת v2
 # ---------------------------------------------------------
 def _patch_force_external_browser(root_dir):
     target_filename = "WaInAppBrowsingActivity.smali"
-    print(f"\n[5] Hijacking {target_filename} (Trampoline Mode)...")
+    print(f"\n[5] Hijacking Internal Browser ({target_filename})...")
     
     target_file = None
+    # חיפוש הקובץ
     for root, dirs, files in os.walk(root_dir):
         if target_filename in files:
             target_file = os.path.join(root, target_filename)
@@ -201,80 +202,92 @@ def _patch_force_external_browser(root_dir):
         with open(target_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # אנחנו מחפשים את ההתחלה של onCreate
-        # Regex תופס את הפונקציה מתחילתה ועד סופה
+        # 1. זיהוי דינמי של מחלקת האב (Parent Class) מתוך כותרת הקובץ
+        # אנו מחפשים את השורה: .super L...;
+        super_class_match = re.search(r"^\.super\s+(L[^;]+;)", content, re.MULTILINE)
+        
+        if not super_class_match:
+            print("    [-] Could not determine parent class from .super declaration.")
+            return False
+            
+        parent_class = super_class_match.group(1)
+        print(f"    [i] Detected parent class: {parent_class}")
+
+        # 2. מציאת המתודה onCreate המקורית כדי להחליף אותה
         method_pattern = re.compile(
             r"(\.method public onCreate\(Landroid\/os\/Bundle;\)V)(.*?)(\.end method)",
             re.DOTALL
         )
+        
+        match = method_pattern.search(content)
+        if not match:
+            print("    [-] onCreate method not found.")
+            return False
 
-        # זהו הקוד החדש. הוא מחליף את *כל* מה שהיה ב-onCreate המקורי.
-        # שים לב: אנחנו משתמשים ב-v0, v1, v2, v3.
-        new_smali_body = """
+        original_body = match.group(2)
+
+        # 3. הכנת הקוד החדש
+        # אנו בונים את שורת ה-invoke-super בצורה מלאכותית ונכונה בהתבסס על ה-parent_class שמצאנו למעלה.
+        # זה פותר את הבעיה של NoSuchMethodError.
+        new_body = f"""
     .locals 4
 
-    # 1. Must call super.onCreate to initialize the Activity context correctly
-    invoke-super {p0, p1}, LX/0Lt;->onCreate(Landroid/os/Bundle;)V
+    # 1. Call Super (Generated correctly based on .super declaration)
+    invoke-super {{p0, p1}}, {parent_class}->onCreate(Landroid/os/Bundle;)V
 
-    # 2. Get the URL from the Intent ("webview_url")
-    invoke-virtual {p0}, Landroid/app/Activity;->getIntent()Landroid/content/Intent;
+    # 2. Get URL from Intent
+    invoke-virtual {{p0}}, Landroid/app/Activity;->getIntent()Landroid/content/Intent;
     move-result-object v0
     const-string v1, "webview_url"
-    invoke-virtual {v0, v1}, Landroid/content/Intent;->getStringExtra(Ljava/lang/String;)Ljava/lang/String;
+    invoke-virtual {{v0, v1}}, Landroid/content/Intent;->getStringExtra(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v2
 
-    # If URL is null, just close
+    # Check if URL exists
     if-nez v2, :cond_start_browser
-    invoke-virtual {p0}, Landroid/app/Activity;->finish()V
+    invoke-virtual {{p0}}, Landroid/app/Activity;->finish()V
     return-void
 
     :cond_start_browser
-    # 3. Prepare Intent
-    invoke-static {v2}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+    # 3. Prepare External Intent
+    invoke-static {{v2}}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
     move-result-object v0
     new-instance v1, Landroid/content/Intent;
     const-string v3, "android.intent.action.VIEW"
-    invoke-direct {v1, v3, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
+    invoke-direct {{v1, v3, v0}}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
     
-    # 4. Try to open external browser
+    # 4. Try Start Activity
     :try_start_0
-    invoke-virtual {p0, v1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
+    invoke-virtual {{p0, v1}}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
     :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+    .catch Ljava/lang/Exception; {{:try_start_0 .. :try_end_0}} :catch_0
 
-    # Success -> Close internal activity
     goto :goto_finish
 
     :catch_0
-    # 5. Exception (No browser found) -> Show Toast
+    # 5. Error (No Browser) -> Toast
     move-exception v0
     const/4 v0, 0x1 
-    const-string v1, "\u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d3\u05e4\u05d3\u05e4\u05df / No Browser Found" 
-    # (המחרוזת למעלה היא "לא נמצא דפדפן" ביוניקוד)
+    # "לא נמצא דפדפן / No Browser Found" in Unicode
+    const-string v1, "\\u05dc\\u05d0 \\u05e0\\u05de\\u05e6\\u05d0 \\u05d3\\u05e4\\u05d3\\u05e4\\u05df / No Browser Found" 
     
-    invoke-static {p0, v1, v0}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    invoke-static {{p0, v1, v0}}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
     move-result-object v0
-    invoke-virtual {v0}, Landroid/widget/Toast;->show()V
+    invoke-virtual {{v0}}, Landroid/widget/Toast;->show()V
 
     :goto_finish
-    # 6. Kill activity immediately
-    invoke-virtual {p0}, Landroid/app/Activity;->finish()V
+    # 6. Kill Internal Activity
+    invoke-virtual {{p0}}, Landroid/app/Activity;->finish()V
     return-void
 """
 
-        match = method_pattern.search(content)
-        if match:
-            # מחליפים את כל התוכן של onCreate בקוד החדש
-            new_content = method_pattern.sub(r"\1" + new_smali_body + r"\3", content)
+        # 4. ביצוע ההחלפה
+        new_content = content.replace(original_body, new_body)
+        
+        with open(target_file, 'w', encoding='utf-8') as f:
+            f.write(new_content)
             
-            with open(target_file, 'w', encoding='utf-8') as f:
-                f.write(new_content)
-                
-            print(f"    [+] onCreate hijacked! The internal browser is now dead code.")
-            return True
-        else:
-            print("    [-] onCreate method not found in file.")
-            return False
+        print(f"    [+] Browser hijacked successfully! (Parent: {parent_class})")
+        return True
 
     except Exception as e:
         print(f"    [-] Error patching browser: {e}")
