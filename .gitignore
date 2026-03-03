@@ -8,3 +8,4 @@ aurora_asset_list.txt
 __pycache__/
 *.pyc
 *.diff
+*.apk
