@@ -22,10 +22,10 @@ def patch_file(file_path, replacements):
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
 
-def main():
+def patch(decompiled_dir: str) -> bool:
     # If a path to the decoded Waze directory is provided as an argument, use it.
     # Otherwise, try to find a directory that looks like decompiled app root.
-    target_dir = sys.argv[1] if len(sys.argv) > 1 else "."
+    target_dir = decompiled_dir
 
     print(f"Searching for smali files in {target_dir}...")
 
