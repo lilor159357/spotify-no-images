@@ -4,7 +4,7 @@
   "name_he": "אגד",
   "package_name": "com.egged.egg",
   "description": "אפליקציית אגד (EGG) - ערוכה להתקנה חלקה.",
-  "source": "aptoide",
+  "source": "aurora",
   "version_file": "apps/egg/version.txt",
   "status_file": "apps/egg/status.json"
 }
