@@ -38,8 +38,19 @@ jobs:
               scraper = cloudscraper.create_scraper(
                   browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True}
               )
+              
+              # *** הטריק מ-APKPure: כותרות HTTP עשירות שמונעות שגיאת 406 ***
               headers = {
-                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                  "Accept-Language": "en-US,en;q=0.9",
+                  "Accept-Encoding": "gzip, deflate, br",
+                  "Connection": "keep-alive",
+                  "Upgrade-Insecure-Requests": "1",
+                  "Sec-Fetch-Dest": "document",
+                  "Sec-Fetch-Mode": "navigate",
+                  "Sec-Fetch-Site": "none",
+                  "Sec-Fetch-User": "?1"
               }
 
               app_url = f"https://{softonic_id}.en.softonic.com/android"
@@ -68,7 +79,7 @@ jobs:
                   
               except Exception as e:
                   print(f"[-] Error on main page: {e}")
-                  # אל תעצור כאן, תמשיך לנסות את עמוד ההורדה
+                  # גם אם נכשל, ננסה להמשיך להורדה
                   download_page = f"{app_url}/download"
 
               print("\n[*] Waiting 3 seconds before navigating to download page...")
@@ -96,7 +107,7 @@ jobs:
                       if ".apk" in href or ".xapk" in href or "ext.softonic.com" in href or "download" in href:
                           if "articles" not in href and "windows" not in href and "mac" not in href:
                               print(f"    -> {href}")
-                          
+                              
               except Exception as e:
                   print(f"[-] Error on download page: {e}")
 
