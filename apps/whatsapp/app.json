@@ -8,6 +8,7 @@
   "icon_url": "https://cdn-icons-png.flaticon.com/512/3992/3992601.png",
   "skip_mitm": true,
   "source": "aptoide",
+  "maintainer": "lilor159357",
   "inject_updater": true,
   "version_file": "apps/whatsapp/version.txt",
   "status_file": "apps/whatsapp/status.json",
