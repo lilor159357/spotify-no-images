@@ -62,7 +62,7 @@ def patch(target_dir: str) -> bool:
                 (
                     r"\.method protected onCreate\(Landroid/os/Bundle;\)V.*?\.end method",
                     """.method protected onCreate(Landroid/os/Bundle;)V
-    .registers 3
+    .registers 2
 
     # Call the parent onCreate
     invoke-super {p0, p1}, Lcom/waze/web/SimpleWebActivity;->onCreate(Landroid/os/Bundle;)V
@@ -146,20 +146,15 @@ def patch(target_dir: str) -> bool:
                 (
                     r"\.method protected n1\(Ljava/lang/String;\)V.*?\.end method",
                     """.method protected n1(Ljava/lang/String;)V
-    .registers 5
+    .registers 3
 
-    # Define the blocked message
-    const-string v0, "<html><body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h1>Access Blocked</h1></body></html>"
-    
-    # Get the WebView instance (stored in field U)
-    iget-object v1, p0, Lcom/waze/web/SimpleWebActivity;->U:Lcom/waze/sharedui/web/WazeWebView;
+    # Get the WazeWebView instance (stored in field U)
+    iget-object v0, p0, Lcom/waze/web/SimpleWebActivity;->U:Lcom/waze/sharedui/web/WazeWebView;
 
-    if-eqz v1, :cond_0
+    if-eqz v0, :cond_0
 
-    # Load the custom HTML string instead of the actual URL
-    const-string v2, "text/html"
-    const-string p1, "UTF-8"
-    invoke-virtual {v1, v0, v2, p1}, Lcom/waze/sharedui/web/WazeWebView;->loadData(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+    # Call F which has been modified to show the blocked page
+    invoke-virtual {v0, p1}, Lcom/waze/sharedui/web/WazeWebView;->F(Ljava/lang/String;)V
 
     :cond_0
     return-void
